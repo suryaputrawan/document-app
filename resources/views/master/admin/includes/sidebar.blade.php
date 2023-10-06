@@ -37,6 +37,19 @@
                     <span class="link-title">Karyawan</span>
                 </a>
             </li>
+            <li class="nav-item nav-category">Role & Permission</li>
+            <li class="nav-item {{ active_class(['admin/roles', 'admin/roles/*']) }}">
+                <a href="{{ route('admin.roles.index') }}" class="nav-link">
+                    <i class="link-icon" data-feather="settings"></i>
+                    <span class="link-title">Roles</span>
+                </a>
+            </li>
+            <li class="nav-item {{ active_class(['admin/permissions', 'admin/permissions/*']) }}">
+                <a href="{{ route('admin.permissions.index') }}" class="nav-link">
+                    <i class="link-icon" data-feather="settings"></i>
+                    <span class="link-title">Permissions</span>
+                </a>
+            </li>
             {{-- <li class="nav-item {{ active_class(['admin/master/specialists', 'admin/master/specialists/*']) }}">
                 <a href="{{ route('admin.specialists.index') }}" class="nav-link">
                     <i class="link-icon" data-feather="user"></i>

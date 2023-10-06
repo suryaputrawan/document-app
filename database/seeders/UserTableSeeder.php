@@ -14,7 +14,7 @@ class UserTableSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
+        $superUser = User::create([
             'name'              => 'Super Admin',
             'username'          => 'superadmin',
             'email'             => 'superadmin@mail.com',
@@ -22,5 +22,7 @@ class UserTableSeeder extends Seeder
             'created_at'        => Carbon::now(),
             'email_verified_at' => Carbon::now()
         ]);
+
+        $superUser->assignRole('Super Administrator');
     }
 }

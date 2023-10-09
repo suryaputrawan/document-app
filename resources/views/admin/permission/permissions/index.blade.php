@@ -36,7 +36,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Permission Name <span class="text-danger">*</span></label>
                                 <input name="name" id="name" type="text" class="form-control"
-                                    placeholder="Example: Admin" value="{{ old('name') }}">
+                                    placeholder="Example: Admin" value="{{ old('name') }}" style="text-transform: lowercase">
                                 <p id="error-name" style="color: red" class="error"></p>
                             </div>
                         </div>

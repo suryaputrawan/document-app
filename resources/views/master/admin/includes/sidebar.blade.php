@@ -38,16 +38,22 @@
                 </a>
             </li>
             <li class="nav-item nav-category">Role & Permission</li>
-            <li class="nav-item {{ active_class(['admin/roles', 'admin/roles/*']) }}">
+            <li class="nav-item {{ active_class(['admin/roles-and-permission/roles', 'admin/roles-and-permission/roles/*']) }}">
                 <a href="{{ route('admin.roles.index') }}" class="nav-link">
                     <i class="link-icon" data-feather="settings"></i>
                     <span class="link-title">Roles</span>
                 </a>
             </li>
-            <li class="nav-item {{ active_class(['admin/permissions', 'admin/permissions/*']) }}">
+            <li class="nav-item {{ active_class(['admin/roles-and-permission/permissions', 'admin/roles-and-permission/permissions/*']) }}">
                 <a href="{{ route('admin.permissions.index') }}" class="nav-link">
                     <i class="link-icon" data-feather="settings"></i>
                     <span class="link-title">Permissions</span>
+                </a>
+            </li>
+            <li class="nav-item {{ active_class(['admin/roles-and-permission/assignable', 'admin/roles-and-permission/assignable/*']) }}">
+                <a href="{{ route('admin.assign.index') }}" class="nav-link">
+                    <i class="link-icon" data-feather="settings"></i>
+                    <span class="link-title">Assign Permissions</span>
                 </a>
             </li>
             {{-- <li class="nav-item {{ active_class(['admin/master/specialists', 'admin/master/specialists/*']) }}">

@@ -6,8 +6,9 @@ use App\Http\Controllers\Admin\JenisController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Permissions\AssignController;
 use App\Http\Controllers\Permissions\RoleController;
+use App\Http\Controllers\Permissions\UserController;
+use App\Http\Controllers\Permissions\AssignController;
 use App\Http\Controllers\Permissions\PermissionController;
 
 Route::get('/', function () {
@@ -45,10 +46,18 @@ Route::group(['middleware' => ['auth']], function () {
             Route::put('{permission}', [PermissionController::class, 'update'])->name('permissions.update');
         });
 
+        //Assign Permission
         Route::get('assignable', [AssignController::class, 'index'])->name('assign.index');
         Route::get('assignable/create', [AssignController::class, 'create'])->name('assign.create');
         Route::post('assignable/store', [AssignController::class, 'store'])->name('assign.store');
         Route::get('assignable/{id}/edit', [AssignController::class, 'edit'])->name('assign.edit');
         Route::put('assignable/{id}/update', [AssignController::class, 'update'])->name('assign.update');
+
+        //Assign to User
+        Route::get('assign', [UserController::class, 'index'])->name('assign.user.index');
+        Route::get('assign/user', [UserController::class, 'create'])->name('assign.user.create');
+        Route::post('assign/user', [UserController::class, 'store']);
+        Route::get('assign/{id}/user', [UserController::class, 'edit'])->name('assign.user.edit');
+        Route::put('assign/{id}/user', [UserController::class, 'update']);
     });
 });

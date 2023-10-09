@@ -56,6 +56,12 @@
                     <span class="link-title">Assign Permissions</span>
                 </a>
             </li>
+             <li class="nav-item {{ active_class(['admin/roles-and-permission/assign', 'admin/roles-and-permission/assign/*']) }}">
+                <a href="{{ route('admin.assign.user.index') }}" class="nav-link">
+                    <i class="link-icon" data-feather="settings"></i>
+                    <span class="link-title">Permission To User</span>
+                </a>
+            </li>
             {{-- <li class="nav-item {{ active_class(['admin/master/specialists', 'admin/master/specialists/*']) }}">
                 <a href="{{ route('admin.specialists.index') }}" class="nav-link">
                     <i class="link-icon" data-feather="user"></i>

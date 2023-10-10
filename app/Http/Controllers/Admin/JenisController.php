@@ -23,22 +23,28 @@ class JenisController extends Controller
 
             return datatables()->of($data)
                 ->addColumn('action', function ($data) {
+                    $user            = auth()->user();
                     $editRoute       = 'admin.jenis.edit';
                     $deleteRoute     = 'admin.jenis.destroy';
                     $dataId          = Crypt::encryptString($data->id);
                     $dataDeleteLabel = $data->nama;
 
                     $action = "";
-                    $action .= '
+
+                    if ($user->can('edit jenis')) {
+                        $action .= '
                         <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
                             <i data-feather="edit"></i>
                         </a> ';
+                    }
 
-                    $action .= '
+                    if ($user->can('delete jenis')) {
+                        $action .= '
                         <button class="btn btn-danger btn-icon delete-item" 
                             data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
                             <i data-feather="trash"></i>
                         </button> ';
+                    }
 
                     $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
                         ' . $action . '

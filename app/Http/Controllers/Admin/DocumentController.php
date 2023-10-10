@@ -43,6 +43,7 @@ class DocumentController extends Controller
 
             return datatables()->of($data)
                 ->addColumn('action', function ($data) {
+                    $user               = auth()->user();
                     $editRoute          = 'document.edit';
                     $deleteRoute        = 'document.destroy';
                     $viewRoute          = 'document.show';
@@ -50,6 +51,7 @@ class DocumentController extends Controller
                     $dataDeleteLabel    = $data->no_surat;
 
                     $action = "";
+
                     $action .= '
                     <a class="btn btn-primary btn-icon" type="button" target="_blank" href="' . route($viewRoute, $dataId) . '">
                         <i data-feather="eye"></i>
@@ -57,16 +59,20 @@ class DocumentController extends Controller
 
                     if ($data->created_by == auth()->user()->karyawan_id || auth()->user()->username == 'superadmin') {
                         if ($data->status_pengirim_diajukan == 0 && $data->status_pengirim_disetujui == 0) {
-                            $action .= '
+                            if ($user->can('edit document')) {
+                                $action .= '
                             <a class="btn btn-warning btn-icon" type="button" href="' . route($editRoute, $dataId) . '">
                                 <i data-feather="edit"></i>
                             </a> ';
+                            }
 
-                            $action .= '
+                            if ($user->can('delete document')) {
+                                $action .= '
                             <button class="btn btn-danger btn-icon delete-item" 
                                 data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
                                 <i data-feather="trash"></i>
                             </button> ';
+                            }
                         }
                     }
 

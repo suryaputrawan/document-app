@@ -24,44 +24,51 @@
                     <span class="link-title">Document</span>
                 </a>
             </li>
-            <li class="nav-item nav-category">Master</li>
-            <li class="nav-item {{ active_class(['admin/master/jenis', 'admin/master/jenis/*']) }}">
-                <a href="{{ route('admin.jenis.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="user"></i>
-                    <span class="link-title">Jenis Document</span>
-                </a>
-            </li>
-            <li class="nav-item {{ active_class(['admin/master/karyawan', 'admin/master/karyawan/*']) }}">
-                <a href="{{ route('admin.karyawan.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="user"></i>
-                    <span class="link-title">Karyawan</span>
-                </a>
-            </li>
-            <li class="nav-item nav-category">Role & Permission</li>
-            <li class="nav-item {{ active_class(['admin/roles-and-permission/roles', 'admin/roles-and-permission/roles/*']) }}">
-                <a href="{{ route('admin.roles.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="settings"></i>
-                    <span class="link-title">Roles</span>
-                </a>
-            </li>
-            <li class="nav-item {{ active_class(['admin/roles-and-permission/permissions', 'admin/roles-and-permission/permissions/*']) }}">
-                <a href="{{ route('admin.permissions.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="settings"></i>
-                    <span class="link-title">Permissions</span>
-                </a>
-            </li>
-            <li class="nav-item {{ active_class(['admin/roles-and-permission/assignable', 'admin/roles-and-permission/assignable/*']) }}">
-                <a href="{{ route('admin.assign.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="settings"></i>
-                    <span class="link-title">Assign Permissions</span>
-                </a>
-            </li>
-             <li class="nav-item {{ active_class(['admin/roles-and-permission/assign', 'admin/roles-and-permission/assign/*']) }}">
-                <a href="{{ route('admin.assign.user.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="settings"></i>
-                    <span class="link-title">Permission To User</span>
-                </a>
-            </li>
+            
+            @can('view master')
+                <li class="nav-item nav-category">Master</li>
+                <li class="nav-item {{ active_class(['admin/master/jenis', 'admin/master/jenis/*']) }}">
+                    <a href="{{ route('admin.jenis.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="user"></i>
+                        <span class="link-title">Jenis Document</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ active_class(['admin/master/karyawan', 'admin/master/karyawan/*']) }}">
+                    <a href="{{ route('admin.karyawan.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="user"></i>
+                        <span class="link-title">Karyawan</span>
+                    </a>
+                </li>
+            @endcan
+            
+            @can('assign permission')
+                <li class="nav-item nav-category">Role & Permission</li>
+                <li class="nav-item {{ active_class(['admin/roles-and-permission/roles', 'admin/roles-and-permission/roles/*']) }}">
+                    <a href="{{ route('admin.roles.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="settings"></i>
+                        <span class="link-title">Roles</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ active_class(['admin/roles-and-permission/permissions', 'admin/roles-and-permission/permissions/*']) }}">
+                    <a href="{{ route('admin.permissions.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="settings"></i>
+                        <span class="link-title">Permissions</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ active_class(['admin/roles-and-permission/assignable', 'admin/roles-and-permission/assignable/*']) }}">
+                    <a href="{{ route('admin.assign.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="settings"></i>
+                        <span class="link-title">Assign Permissions</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ active_class(['admin/roles-and-permission/assign', 'admin/roles-and-permission/assign/*']) }}">
+                    <a href="{{ route('admin.assign.user.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="settings"></i>
+                        <span class="link-title">Permission To User</span>
+                    </a>
+                </li>
+            @endcan
+            
             {{-- <li class="nav-item {{ active_class(['admin/master/specialists', 'admin/master/specialists/*']) }}">
                 <a href="{{ route('admin.specialists.index') }}" class="nav-link">
                     <i class="link-icon" data-feather="user"></i>

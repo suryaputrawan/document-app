@@ -17,10 +17,12 @@
         <div class="card">
             <div class="card-header flex flex-align-center">
                 <h6 class="card-title flex-full-width mb-0">Documents</h6>
-                <a href="{{ route('document.create') }}" type="button" class="btn btn-sm btn-primary btn-icon-text">
-                    <i class="btn-icon-prepend" data-feather="plus"></i>
-                    Tambah
-                </a>
+                @can('create document')
+                    <a href="{{ route('document.create') }}" type="button" class="btn btn-sm btn-primary btn-icon-text">
+                        <i class="btn-icon-prepend" data-feather="plus"></i>
+                        Tambah
+                    </a>
+                @endcan
             </div>
             <div class="card-body">
                 <div class="table-responsive">

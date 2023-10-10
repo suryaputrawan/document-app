@@ -17,10 +17,12 @@
         <div class="card">
             <div class="card-header flex flex-align-center">
                 <h6 class="card-title flex-full-width mb-0">Jenis List</h6>
-                <button id="btn-add" type="button" class="btn btn-sm btn-primary btn-icon-text">
-                    <i class="btn-icon-prepend" data-feather="plus"></i>
-                    Tambah
-                </button>
+                @can('create jenis')
+                    <button id="btn-add" type="button" class="btn btn-sm btn-primary btn-icon-text">
+                        <i class="btn-icon-prepend" data-feather="plus"></i>
+                        Tambah
+                    </button>
+                @endcan 
             </div>
             <div id="item-loading" class="card-body" style="display: none">
                 <div class="d-flex align-items-center">

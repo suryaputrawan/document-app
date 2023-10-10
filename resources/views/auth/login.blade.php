@@ -32,10 +32,15 @@
                             <form action="{{ route('login') }}" method="POST">
                                 @csrf
                                 <div class="mb-3">
+                                    <label for="userEmail" class="form-label">Username</label>
+                                    <input required name="username" type="text" class="form-control" id="userEmail"
+                                        placeholder="NIP Karyawan">
+                                </div>
+                                {{-- <div class="mb-3">
                                     <label for="userEmail" class="form-label">Email</label>
                                     <input required name="email" type="email" class="form-control" id="userEmail"
                                         placeholder="user@mail.com">
-                                </div>
+                                </div> --}}
                                 <label for="userPassword" class="form-label" style="width: 100%">
                                   <span>Kata Sandi</span>
                                   {{-- <a href="{{ route('password.request') }}">

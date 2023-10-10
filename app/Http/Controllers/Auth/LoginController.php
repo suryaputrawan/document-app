@@ -50,11 +50,11 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required',
-            'password' => 'required',
+            'username'    => 'required',
+            'password'    => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('username', $request->username)->first();
 
         if (is_null($user)) {
             return redirect()
@@ -63,8 +63,8 @@ class LoginController extends Controller
         } else {
             if (Auth::attempt(
                 [
-                    'email'    => $request->email,
-                    'password' => $request->password,
+                    'username'      => $request->username,
+                    'password'      => $request->password,
                 ],
                 $request->has("remember")
             )) {

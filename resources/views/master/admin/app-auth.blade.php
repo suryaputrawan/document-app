@@ -9,7 +9,7 @@
     <meta name="author" content="Ward">
     <meta name="keywords" content="ward, bimc kuta">
 
-    <title>DOC-APP</title>
+    <title>HCDOC APP</title>
 
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/admin/favicons/apple-touch-icon.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/admin/favicons/favicon-32x32.png') }}">

@@ -11,7 +11,7 @@
 
     <meta name="csrf-token" content="{{ csrf_token() }}" />
 
-    <title>Document App</title>
+    <title>HCDOC APP</title>
 
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('assets/favicons/favicon.ico') }}" />
     <link rel="shortcut icon" href="{{ asset('assets/favicons/favicon.ico') }}">

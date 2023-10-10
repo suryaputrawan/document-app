@@ -17,7 +17,7 @@
                     <div class="col-md-8 ps-md-0">
                         <div class="auth-form-wrapper px-4 py-5">
                             <img class="d-block d-md-none" src="{{ asset('assets/admin/images/logo-text.png') }}" height="50px" alt="PERSI Website">
-                            <a href="#!" class="d-none d-md-block noble-ui-logo d-block">Doctor <span>Directory</span></a>
+                            <a href="#!" class="d-none d-md-block noble-ui-logo d-block">HCDOC <span>App</span></a>
                             <h5 class="text-muted fw-normal mb-3">Selamat datang kembali ~</h5>
                             @if(session()->has('error'))
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">

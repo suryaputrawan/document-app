@@ -1,7 +1,7 @@
 <nav class="sidebar">
     <div class="sidebar-header">
         <a href="{{ route('admin.dashboard') }}" class="sidebar-brand">
-            <img src="{{ asset('assets/admin/images/logo.png') }}" width="120px" alt="PERSI Logo">
+            <img src="{{ asset('assets/admin/images/logo-hcdoc.png') }}" width="120px" alt="logo">
         </a>
         <div class="sidebar-toggler not-active">
             <span></span>

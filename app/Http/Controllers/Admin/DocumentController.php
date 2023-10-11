@@ -61,24 +61,24 @@ class DocumentController extends Controller
                         if ($data->status_pengirim_diajukan == 0 && $data->status_pengirim_disetujui == 0) {
                             if ($user->can('edit document')) {
                                 $action .= '
-                            <a class="btn btn-warning btn-icon" type="button" href="' . route($editRoute, $dataId) . '">
-                                <i data-feather="edit"></i>
-                            </a> ';
+                                <a class="btn btn-warning btn-icon" type="button" href="' . route($editRoute, $dataId) . '">
+                                    <i data-feather="edit"></i>
+                                </a> ';
                             }
 
                             if ($user->can('delete document')) {
                                 $action .= '
-                            <button class="btn btn-danger btn-icon delete-item" 
-                                data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
-                                <i data-feather="trash"></i>
-                            </button> ';
+                                <button class="btn btn-danger btn-icon delete-item" 
+                                    data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
+                                    <i data-feather="trash"></i>
+                                </button> ';
                             }
                         }
                     }
 
                     $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
-                        ' . $action . '
-                    </div>';
+                        ' . $action . '</div>';
+
                     return $group;
                 })
                 ->addColumn('jenis_surat', function ($data) {

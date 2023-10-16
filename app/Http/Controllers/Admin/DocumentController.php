@@ -12,9 +12,12 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Mail\DocumentMail;
 use App\Models\DocumentApproval;
 use App\Models\DocumentRecipient;
+use App\Models\User;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
 
 class DocumentController extends Controller
 {
@@ -25,7 +28,7 @@ class DocumentController extends Controller
     {
         if (request()->type == 'datatable') {
             if (auth()->user()->username == "superadmin") {
-                $data = Document::with('jenis')->get();
+                $data = Document::with('jenis')->latest()->get();
             } else {
                 $user = auth()->user()->karyawan_id;
                 $data = Document::with('recipient', 'approval', 'jenis')
@@ -38,6 +41,7 @@ class DocumentController extends Controller
                     ->orWhere('pengirim_diajukan_oleh', $user)
                     ->orWhere('pengirim_disetujui_oleh', $user)
                     ->orwhere('created_by', $user)
+                    ->latest()
                     ->get();
             }
 
@@ -182,6 +186,34 @@ class DocumentController extends Controller
 
             //Sync to table document_recipient (many to many)
             $document->recipient()->sync(request('recipient'));
+
+            // Send Email
+            // To Pengirim Diajukan
+            $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
+                ->first(['id', 'name', 'email']);
+            Mail::to($diajukanOleh->email)->send(new DocumentMail($document));
+
+            // To Pengirim Disetujui
+            $disetujuiOleh = User::where('karyawan_id', $document->pengirim_disetujui_oleh)
+                ->first(['id', 'name', 'email']);
+            Mail::to($disetujuiOleh->email)->send(new DocumentMail($document));
+
+            // To Recipient
+            $docRecip = DocumentRecipient::where('document_id', $document->id)->get();
+            foreach ($docRecip as $recipient) {
+                $userRecipient = User::where('karyawan_id', $recipient->karyawan_id)
+                    ->first(['id', 'name', 'email']);
+                Mail::to($userRecipient->email)->send(new DocumentMail($document));
+            }
+
+            // To Approval
+            $docApproval = DocumentApproval::where('document_id', $document->id)->get();
+            foreach ($docApproval as $approval) {
+                $userApproval = User::where('karyawan_id', $approval->karyawan_id)
+                    ->first(['id', 'name', 'email']);
+                Mail::to($userApproval->email)->send(new DocumentMail($document));
+            }
+            // End Send Email
 
             if (isset($_POST['btnSimpan'])) {
                 return redirect()->route('document.index')

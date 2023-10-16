@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="description" content="Ward Info BIMC KUTA">
-    <meta name="author" content="Ward">
-    <meta name="keywords" content="ward, bimc kuta">
+    <meta name="description" content="HCDOC APP">
+    <meta name="author" content="HCDOC">
+    <meta name="keywords" content="HCDOC">
 
     <meta name="csrf-token" content="{{ csrf_token() }}" />
 

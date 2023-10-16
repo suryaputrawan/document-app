@@ -389,8 +389,9 @@ class DocumentController extends Controller
             //Mempersiapkan data
             $user = auth()->user()->karyawan_id;
             $id = Crypt::decryptString($id);
-            $dataSignDiajukanPengirim = Document::find($id)->where('pengirim_diajukan_oleh', $user)->first();
-            $dataSignDisetujuiPengirim = Document::find($id)->where('pengirim_disetujui_oleh', $user)->first();
+
+            $dataSignDiajukanPengirim = Document::where('id', $id)->where('pengirim_diajukan_oleh', $user)->first();
+            $dataSignDisetujuiPengirim = Document::where('id', $id)->where('pengirim_disetujui_oleh', $user)->first();
             $dataSignApproval = DocumentApproval::where('document_id', $id)->where('karyawan_id', $user)->first();
             $dataSignRecipient = DocumentRecipient::where('document_id', $id)->where('karyawan_id', $user)->first();
 

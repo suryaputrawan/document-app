@@ -85,7 +85,7 @@
             }
         });
 
-        //Toast for session success
+        //---Toast for session success
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -105,10 +105,9 @@
             });
         }
         @endif
-    });
+        //--- End Toast session success
 
-    //Sign Document
-    $(document).ready(function() {
+        //---Sign Document
         const swalWithBootstrapButtonsConfirm = Swal.mixin();
         const swalWithBootstrapButtons = Swal.mixin();
 
@@ -159,7 +158,7 @@
                 backdrop: true
             });
         });
+        //---End Sign Document
     });
-    //End Assign
 </script>
 @endpush

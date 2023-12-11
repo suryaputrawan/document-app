@@ -5,20 +5,22 @@ namespace App\Http\Controllers\Admin;
 use Exception;
 use Throwable;
 use Carbon\Carbon;
+use App\Models\User;
 use App\Models\Jenis;
 use App\Models\Document;
 use App\Models\Karyawan;
-use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 use App\Mail\DocumentMail;
+use Illuminate\Http\Request;
 use App\Mail\DocumentSignMail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\DocumentApproval;
 use App\Models\DocumentRecipient;
-use App\Models\User;
-use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class DocumentController extends Controller
 {
@@ -383,71 +385,111 @@ class DocumentController extends Controller
         }
     }
 
-    public function sign($id)
+    public function sign(Request $request, $id)
     {
-        DB::beginTransaction();
-        try {
-            //Mempersiapkan data
-            $user = auth()->user()->karyawan_id;
-            $id = Crypt::decryptString($id);
+        $data = Karyawan::find(auth()->user()->karyawan_id);
 
-            $document = Document::find($id);
-            $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
-                ->first(['id', 'name', 'email']);
-            $karyawan = Karyawan::where('id', $user)->first();
+        $validator = Validator::make([
+            'picture'    => $request->picture
+        ], [
+            'picture'    => 'required|mimes:png|max:1000',
+        ]);
 
-            $dataSignDiajukanPengirim = Document::where('id', $id)->where('pengirim_diajukan_oleh', $user)->first();
-            $dataSignDisetujuiPengirim = Document::where('id', $id)->where('pengirim_disetujui_oleh', $user)->first();
-            $dataSignApproval = DocumentApproval::where('document_id', $id)->where('karyawan_id', $user)->first();
-            $dataSignRecipient = DocumentRecipient::where('document_id', $id)->where('karyawan_id', $user)->first();
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 400,
+                'errors' => $validator->messages(),
+            ]);
+        } else {
+            if ($data) {
+                DB::beginTransaction();
 
-            //Melakukan pengecekan data ada atau tidak
-            if ($dataSignDiajukanPengirim != null) {
-                $dataSignDiajukanPengirim->update([
-                    'status_pengirim_diajukan'   => 1
-                ]);
-            } elseif ($dataSignDisetujuiPengirim != null) {
-                $dataSignDisetujuiPengirim->update([
-                    'status_pengirim_disetujui'   => 1
-                ]);
+                //Membuat kondisi langsung mendelete gambar yang lama pada storage
+                if (request('picture')) {
+                    if ($data->ttd_picture) {
+                        Storage::delete($data->ttd_picture);
+                    }
+                    $picture = request()->file('picture')->store('ttd');
+                } elseif ($data->ttd_picture) {
+                    $picture = $data->ttd_picture;
+                } else {
+                    $picture = null;
+                }
+                //End Kondisi
 
-                // Send email to pembuat surat
-                Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
-            } elseif ($dataSignApproval != null) {
-                DB::table('document_approval')
-                    ->where('document_id', $id)
-                    ->where('karyawan_id', $user)
-                    ->update(['status_approval' => 1]);
+                try {
 
-                // Send email to pembuat surat
-                Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
-            } elseif ($dataSignRecipient != null) {
-                DB::table('document_recipient')
-                    ->where('document_id', $id)
-                    ->where('karyawan_id', $user)
-                    ->update(['status_recipient' => 1]);
+                    $user = auth()->user()->karyawan_id;
+                    $id = Crypt::decryptString($id);
 
-                // Send email to pembuat surat
-                Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
+                    $document = Document::find($id);
+                    $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
+                        ->first(['id', 'name', 'email']);
+                    $karyawan = Karyawan::where('id', $user)->first();
+
+                    $dataSignDiajukanPengirim = Document::where('id', $id)->where('pengirim_diajukan_oleh', $user)->first();
+                    $dataSignDisetujuiPengirim = Document::where('id', $id)->where('pengirim_disetujui_oleh', $user)->first();
+                    $dataSignApproval = DocumentApproval::where('document_id', $id)->where('karyawan_id', $user)->first();
+                    $dataSignRecipient = DocumentRecipient::where('document_id', $id)->where('karyawan_id', $user)->first();
+
+                    //Melakukan pengecekan data ada atau tidak
+                    if ($dataSignDiajukanPengirim != null) {
+                        $dataSignDiajukanPengirim->update([
+                            'status_pengirim_diajukan'   => 1
+                        ]);
+                    } elseif ($dataSignDisetujuiPengirim != null) {
+                        $dataSignDisetujuiPengirim->update([
+                            'status_pengirim_disetujui'   => 1
+                        ]);
+
+                        // Send email to pembuat surat
+                        Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
+                    } elseif ($dataSignApproval != null) {
+                        DB::table('document_approval')
+                            ->where('document_id', $id)
+                            ->where('karyawan_id', $user)
+                            ->update(['status_approval' => 1]);
+
+                        // Send email to pembuat surat
+                        Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
+                    } elseif ($dataSignRecipient != null) {
+                        DB::table('document_recipient')
+                            ->where('document_id', $id)
+                            ->where('karyawan_id', $user)
+                            ->update(['status_recipient' => 1]);
+
+                        // Send email to pembuat surat
+                        Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
+                    } else {
+                        return response()->json([
+                            'status'  => 404,
+                            'message' => "Data not found!",
+                        ], 404);
+                    }
+
+                    $data->update([
+                        'ttd_picture'   => $picture,
+                    ]);
+
+                    DB::commit();
+
+                    return response()->json([
+                        'status'  => 200,
+                        'message' => "Document has been signature..!",
+                    ], 200);
+                } catch (\Throwable $th) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'  => 500,
+                        'message' => $th->getMessage(),
+                    ], 500);
+                }
             } else {
                 return response()->json([
-                    'status'  => 404,
-                    'message' => "Data not found!",
-                ], 404);
+                    'status' => 404,
+                    'message' => 'Data not found..!',
+                ]);
             }
-
-            DB::commit();
-
-            return response()->json([
-                'status'  => 200,
-                'message' => "Document has been signature..!",
-            ], 200);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
-            ], 500);
         }
     }
 }

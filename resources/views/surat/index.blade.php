@@ -45,6 +45,7 @@
         </div>
     </div>
 </div>
+@include('surat.modal.upload-sign')
 @endsection
 
 
@@ -55,6 +56,33 @@
 
 @push('custom-scripts')
 <script type="text/javascript">
+    //Preview Image
+    function previewImages() {
+        var preview = document.querySelector('#preview');
+        preview.innerHTML = '';
+        var files = document.querySelector('input[type=file]').files;
+    
+        function readAndPreview(file) {
+            // Make sure `file.name` matches our extensions criteria
+            if (/\.(jpe?g|png|gif)$/i.test(file.name)) {
+                var reader = new FileReader();
+                reader.addEventListener('load', function() {
+                    var image = new Image();
+                    image.height = 150;
+                    image.title = file.name;
+                    image.src = this.result;
+                    preview.appendChild(image);
+                }, false);
+    
+                reader.readAsDataURL(file);
+            }
+        }
+    
+        if (files) {
+            [].forEach.call(files, readAndPreview);
+        }
+    };
+
     $(document).ready(function(){
 
         // datatable initialization
@@ -107,58 +135,108 @@
         @endif
         //--- End Toast session success
 
-        //---Sign Document
-        const swalWithBootstrapButtonsConfirm = Swal.mixin();
-        const swalWithBootstrapButtons = Swal.mixin();
+        //----form environtment
+        function clearFormUploadPicture() {
+            $('#picture-upload').val("");
+            $('#upload-picture-form').find('.error').text("");
+            var preview = document.querySelector('#preview');
+            preview.innerHTML = '';
+        }
+        //---End Form environment
 
-        //Assign ticket
+        //----Modal
         $(document).on('click', '.sign-document', function(e) {
-            e.preventDefault();
-            var id = $(this).data('id');
-            var url = $(this).data('url');
-            var label = $(this).data('label');
+            $('#modal-upload-sign').modal('show');
+            $('#title-modal-sign').text('Upload Signature');
+            $("#btn-submit-text").text("Sign Document");
 
-            swalWithBootstrapButtonsConfirm.fire({
-                title: `Give signature on document ?`,
-                text : `[ ${label} ]`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sign',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return $.ajax({
-                        type: "POST",
-                        dataType: "JSON",
-                        url: url,
-                        data: {
-                            "_method": 'PUT',
-                            "_token": "{{ csrf_token() }}",
-                        }
-                    }).then((data) => {
-                        let message = 'Document has been signature..!';
-                        if (data.message) {
-                            message = data.message;
-                        }
-                        swalWithBootstrapButtons.fire('Success!', message, 'success');
-                        $('#datatable').DataTable().ajax.reload();
-                    }, (data) => {
-                        let message = '';
-                        if (data.responseJSON.message) {
-                            message = data.responseJSON.message;
-                        }
-                        swalWithBootstrapButtons.fire('Oops!', `Signature document not work, ${message}`, 'error');
-                        if (data.status === 404) {
-                            $('#datatable').DataTable().ajax.reload();
-                        }
-                    });
+            ajaxUrl = $(this).data('url');
+            ajaxType = "PUT";
+        });
+
+        $(".btn-cancel-upload-picture").click(function() {
+            $('#modal-upload-sign').modal('hide');
+            clearFormUploadPicture();
+        });
+        //----End Modal
+
+        //------ Submit Data upload signature
+        $('#upload-picture-form').on('submit', function(e) {
+            e.preventDefault();
+
+            var submitButton = $(this).find("button[type='submit']");
+            var submitButtonLoading = $(this).find("button[type='submit'] #submit-loading");
+            submitButton.prop('disabled',true);
+            submitButtonLoading.toggle();
+
+            var formData = new FormData(this);
+            formData.append("_method", ajaxType)
+
+            $('#upload-picture-form').find('.error').text("");
+            $('.btn-cancel-upload-picture').toggle();
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                allowOutsideClick: () => !swalWithBootstrapButtons.isLoading(),
-                backdrop: true
+                type   : "POST",
+                url    : ajaxUrl,
+                data   : formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {        
+
+                    submitButton.prop('disabled',false);
+                    submitButtonLoading.toggle();
+
+                    if (response.status == 200) {
+                        clearFormUploadPicture();
+                        $('#modal-upload-sign').modal('hide');
+                        $('#datatable').DataTable().ajax.reload();
+
+                        $('.btn-cancel-upload-picture').toggle();
+
+                        Toast.fire({
+                            icon: 'success',
+                            title: response.message,
+                        });
+                    } else if (response.status == 400) {
+                        $.each(response.errors.picture, function(key, error) {
+                            $('#error-picture').append(error);
+                        });
+                        $('.btn-cancel-upload-picture').toggle();
+                    } else {
+                        Toast.fire({
+                            icon: 'warning',
+                            title: response.message,
+                        });
+                        $('.btn-cancel-upload-picture').toggle();
+                    }
+                },
+                error: function(response){
+                    submitButton.prop('disabled',false);
+                    submitButtonLoading.toggle();
+
+                    Toast.fire({
+                        icon: 'error',
+                        title: response.responseJSON.message ?? 'Oops,.. Something went wrong!',
+                    });
+                }
             });
         });
-        //---End Sign Document
+        //------ End Submit Data Upload Signature
     });
 </script>
 @endpush

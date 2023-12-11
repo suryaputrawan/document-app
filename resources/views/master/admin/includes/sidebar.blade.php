@@ -29,7 +29,7 @@
                 <li class="nav-item nav-category">Master</li>
                 <li class="nav-item {{ active_class(['admin/master/jenis', 'admin/master/jenis/*']) }}">
                     <a href="{{ route('admin.jenis.index') }}" class="nav-link">
-                        <i class="link-icon" data-feather="user"></i>
+                        <i class="link-icon" data-feather="file"></i>
                         <span class="link-title">Jenis Document</span>
                     </a>
                 </li>

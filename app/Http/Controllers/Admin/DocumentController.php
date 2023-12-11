@@ -13,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Mail\DocumentMail;
+use App\Mail\DocumentSignMail;
 use App\Models\DocumentApproval;
 use App\Models\DocumentRecipient;
 use App\Models\User;
@@ -390,6 +391,11 @@ class DocumentController extends Controller
             $user = auth()->user()->karyawan_id;
             $id = Crypt::decryptString($id);
 
+            $document = Document::find($id);
+            $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
+                ->first(['id', 'name', 'email']);
+            $karyawan = Karyawan::where('id', $user)->first();
+
             $dataSignDiajukanPengirim = Document::where('id', $id)->where('pengirim_diajukan_oleh', $user)->first();
             $dataSignDisetujuiPengirim = Document::where('id', $id)->where('pengirim_disetujui_oleh', $user)->first();
             $dataSignApproval = DocumentApproval::where('document_id', $id)->where('karyawan_id', $user)->first();
@@ -404,16 +410,25 @@ class DocumentController extends Controller
                 $dataSignDisetujuiPengirim->update([
                     'status_pengirim_disetujui'   => 1
                 ]);
+
+                // Send email to pembuat surat
+                Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
             } elseif ($dataSignApproval != null) {
                 DB::table('document_approval')
                     ->where('document_id', $id)
                     ->where('karyawan_id', $user)
                     ->update(['status_approval' => 1]);
+
+                // Send email to pembuat surat
+                Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
             } elseif ($dataSignRecipient != null) {
                 DB::table('document_recipient')
                     ->where('document_id', $id)
                     ->where('karyawan_id', $user)
                     ->update(['status_recipient' => 1]);
+
+                // Send email to pembuat surat
+                Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
             } else {
                 return response()->json([
                     'status'  => 404,

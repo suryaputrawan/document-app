@@ -17,6 +17,7 @@ use App\Models\DocumentApproval;
 use App\Models\DocumentRecipient;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DocumentRequest;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
@@ -150,7 +151,7 @@ class DocumentController extends Controller
         return view('surat.create', [
             'breadcrumb'    => 'Document',
             'btnSubmit'     => 'Simpan',
-            'jenis'         => Jenis::get(['id', 'nama']),
+            'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
             'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan'])
         ]);
     }
@@ -158,17 +159,8 @@ class DocumentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(DocumentRequest $request)
     {
-        $request->validate([
-            'no_surat'          => 'required|max:255|min:5|unique:documents,no_surat',
-            'jenis_document'    => 'required',
-            'diajukan_oleh'     => 'required',
-            'disetujui_oleh'    => 'required',
-            'approval'          => 'array',
-            'isi_document'      => 'required|min:5',
-        ]);
-
         try {
             DB::beginTransaction();
 
@@ -271,6 +263,8 @@ class DocumentController extends Controller
         try {
             $id = Crypt::decryptString($id);
             $data = Document::find($id);
+            $recipient = DocumentRecipient::where('document_id', $data->id)->get();
+            $approval = DocumentApproval::where('document_id', $data->id)->get();
 
             if (!$data) {
                 return redirect()
@@ -282,8 +276,10 @@ class DocumentController extends Controller
                 'breadcrumb'    => 'Document',
                 'btnSubmit'     => 'Simpan Perubahan',
                 'data'          => $data,
-                'jenis'         => Jenis::get(['id', 'nama']),
-                'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan'])
+                'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
+                'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan']),
+                'recipient'     => $recipient,
+                'approval'      => $approval
             ]);
         } catch (\Throwable $e) {
             return redirect()
@@ -299,6 +295,8 @@ class DocumentController extends Controller
     {
         $id = Crypt::decryptString($id);
         $data = Document::find($id);
+        $recipient = DocumentRecipient::where('document_id', $data->id)->get();
+        $approval = DocumentApproval::where('document_id', $data->id)->get();
 
         if (!$data) {
             return redirect()
@@ -311,6 +309,7 @@ class DocumentController extends Controller
             'jenis_document'    => 'required',
             'diajukan_oleh'     => 'required',
             'disetujui_oleh'    => 'required',
+            'recipient'         => 'array',
             'approval'          => 'array',
             'isi_document'      => 'required|min:5',
         ]);
@@ -325,8 +324,10 @@ class DocumentController extends Controller
                 'body'                      => $request->isi_document
             ]);
 
-            $data->approval()->sync(request('approval'));
+            $data->approval()->sync([]);
+            $data->recipient()->sync([]);
 
+            $data->approval()->sync(request('approval'));
             $data->recipient()->sync(request('recipient'));
 
             DB::commit();

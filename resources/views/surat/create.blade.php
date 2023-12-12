@@ -113,37 +113,127 @@
                     <hr>
 
                     <h6 class="mb-3">Pihak Penerima :</h6>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="mb-3">
-                                <label class="form-label">Recipient User <span class="text-danger">*</span></label>
-                                <select name="recipient[]" class="js-example-basic-multiple form-select @error('recipient') is-invalid @enderror" data-width="100%" multiple="multiple">
-                                    @foreach ($karyawan as $item)
-                                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
-                                    @endforeach
-                                </select>
-                                @error('recipient')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                    <div class="row form-row" id="recipient-form">
+                        <div class="form-group col-12 col-md-10 mb-3">
+                            <div class="table-responsive">
+                                <table id="tb-recipient" class="table table-bordered" width="100%" cellspacing="0">
+                                    <thead style="background-color:#9BB8CD">
+                                        <tr>
+                                            <th style="text-align: center; color:black">User Recipient</th>
+                                            <th style="color: black">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (old('recipient'))
+                                            @for ($i = 0; $i < count(old('recipient')); $i++)
+                                                <tr>
+                                                    <td>
+                                                        <select class="js-example-basic form-select select-recipient @error('recipient.'.$i) is-invalid @enderror" name="recipient[]">
+                                                            <option selected disabled>Select User Recipient</option>
+                                                            @foreach ($karyawan as $item)
+                                                            <option value="{{ $item->id }}" 
+                                                                {{ old('recipient.'.$i) == $item->id ? 'selected' : null }}>{{ $item->nama }}
+                                                            </option>
+                                                            @endforeach
+                                                        </select>
+                                                        @error('recipient.'.$i)
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </td>
+                                                    <td width="50px">
+                                                        <button id="btn-recipient-delete" type="button" class="btn btn-danger">Delete</button>
+                                                    </td>
+                                                </tr>
+                                            @endfor 
+                                        @else
+                                        <tr>
+                                            <td>
+                                                <select class="js-example-basic-multiple form-select @error('recipient') is-invalid @enderror" name="recipient[]" id="recipient">
+                                                    <option selected disabled>Select User Recipient</option>
+                                                    @foreach ($karyawan as $item)
+                                                    <option value="{{ $item->id }}" 
+                                                        {{ old('recipient') == $item->id ? 'selected' : null }}>{{ $item->nama }}
+                                                    </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('recipient')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </td>
+                                            <td width="80px">
+                                                <button id="btn-recipient-delete" type="button" class="btn btn-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                        @endif
+                                    </tbody>
+                                </table>
                             </div>
+                        </div>
+                        <div class="form-group col-12 col-md-1">
+                            <button id="btn-recipient-add" type="button" class="btn btn-primary"><i data-feather="plus"></i></button>
                         </div>
                     </div>
                     <hr>
                     
                     <h6 class="mb-3">Disetujui Oleh :</h6>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="mb-3">
-                                <label class="form-label">Approval User <span class="text-danger">*</span></label>
-                                <select name="approval[]" class="js-example-basic-multiple form-select @error('approval') is-invalid @enderror" data-width="100%" multiple="multiple">
-                                    @foreach ($karyawan as $item)
-                                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
-                                    @endforeach
-                                </select>
-                                @error('approval')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                    <div class="row form-row" id="approval-form">
+                        <div class="form-group col-12 col-md-10 mb-3">
+                            <div class="table-responsive">
+                                <table id="tb-approval" class="table table-bordered" width="100%" cellspacing="0">
+                                    <thead style="background-color:#9BB8CD">
+                                        <tr>
+                                            <th style="text-align: center; color:black">User Approval</th>
+                                            <th style="color: black">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (old('approval'))
+                                            @for ($i = 0; $i < count(old('approval')); $i++)
+                                                <tr>
+                                                    <td>
+                                                        <select class="js-example-basic-multiple form-select select-approval @error('approval.'.$i) is-invalid @enderror" name="approval[]">
+                                                            <option selected disabled>Select User Recipient</option>
+                                                            @foreach ($karyawan as $item)
+                                                            <option value="{{ $item->id }}" 
+                                                                {{ old('approval.'.$i) == $item->id ? 'selected' : null }}>{{ $item->nama }}
+                                                            </option>
+                                                            @endforeach
+                                                        </select>
+                                                        @error('approval.'.$i)
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </td>
+                                                    <td width="50px">
+                                                        <button id="btn-approval-delete" type="button" class="btn btn-danger">Delete</button>
+                                                    </td>
+                                                </tr>
+                                            @endfor 
+                                        @else
+                                        <tr>
+                                            <td>
+                                                <select class="js-example-basic-multiple form-select @error('approval') is-invalid @enderror" name="approval[]" id="approval">
+                                                    <option selected disabled>Select User Approval</option>
+                                                    @foreach ($karyawan as $item)
+                                                    <option value="{{ $item->id }}" 
+                                                        {{ old('approval') == $item->id ? 'selected' : null }}>{{ $item->nama }}
+                                                    </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('approval')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </td>
+                                            <td width="80px">
+                                                <button id="btn-approval-delete" type="button" class="btn btn-danger">Delete</button>
+                                            </td>
+                                        </tr>
+                                        @endif
+                                    </tbody>
+                                </table>
                             </div>
+                        </div>
+                        <div class="form-group col-12 col-md-1">
+                            <button id="btn-approval-add" type="button" class="btn btn-primary"><i data-feather="plus"></i></button>
                         </div>
                     </div>
                     <hr>
@@ -292,28 +382,94 @@
 </script>
 
 <script type="text/javascript">
-    //Toast for session success
-    const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer)
-                toast.addEventListener('mouseleave', Swal.resumeTimer)
-            }
+    let recipient = "<tr>"+
+        "<td>"+
+            "<select class='js-example-basic form-select select-recipient @error('recipient') is-invalid @enderror' name='recipient[]'>"+
+                "<option value=''>Select User Recipient</option>"+
+                "@foreach ($karyawan as $item)"+
+                "<option value='{{ $item->id }}'>{{ $item->nama }}</option>"+
+                "@endforeach"+
+            "</select>"+
+            "<p id='error-recipient' style='color: red' class='error'></p>"+
+        "</td>"+
+        "<td width='80px'>"+
+            "<button id='btn-recipient-delete' type='button' class='btn btn-danger'>Delete</button>"+
+        "</td>"+
+    "</tr>"
+
+    let approval = "<tr>"+
+        "<td>"+
+            "<select class='js-example-basic form-select select-approval @error('approval') is-invalid @enderror' name='approval[]'>"+
+                "<option value=''>Select User Approval</option>"+
+                "@foreach ($karyawan as $item)"+
+                "<option value='{{ $item->id }}'>{{ $item->nama }}</option>"+
+                "@endforeach"+
+            "</select>"+
+            "<p id='error-approval' style='color: red' class='error'></p>"+
+        "</td>"+
+        "<td width='80px'>"+
+            "<button id='btn-approval-delete' type='button' class='btn btn-danger'>Delete</button>"+
+        "</td>"+
+    "</tr>"
+
+    //--Repeat item form
+    function selectRefresh() {
+        $('.select-recipient').select2({
+            tags: true,
+            placeholder: "Select User Recipient",
+            width: '100%'
         });
 
-        @if (session('success')) {
-            Toast.fire({
-                icon: 'success',
-                title: "{{ session('success') }}",
-            });
-        }
-        @endif
+        $('.select-approval').select2({
+            tags: true,
+            placeholder: "Select User Approval",
+            width: '100%'
+        });
+    }
 
-        //environment button
+    $(document).ready(function() {
+        $('#btn-recipient-add').click(function() {
+            $('#tb-recipient > tbody').append(recipient);
+            selectRefresh();
+        });
+
+        $('tbody').on('click','#btn-recipient-delete', function() {
+            $(this).parent().parent().remove();
+        });
+
+        $('#btn-approval-add').click(function() {
+            $('#tb-approval > tbody').append(approval);
+            selectRefresh();
+        });
+
+        $('tbody').on('click','#btn-approval-delete', function() {
+            $(this).parent().parent().remove();
+        });
+    });
+    //--- End repeat item form
+
+    //Toast for session success
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+
+    @if (session('success')) {
+        Toast.fire({
+            icon: 'success',
+            title: "{{ session('success') }}",
+        });
+    }
+    @endif
+
+    //environment button
     $('#btnCreateSave').on('click', function () {
         $('#btnCreateSave-loading').toggle();
         $('#btnCreateSave-loading').prop('disabled',true);

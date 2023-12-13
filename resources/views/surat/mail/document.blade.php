@@ -53,7 +53,7 @@
                                                                             <tr>
                                                                                 <td style="font-family: Open Sans, Helvetica, Tahoma, Arial, sans-serif;width: 160px;" width="160"> 
                                                                                     <a href="{{ route('admin.dashboard') }}" target="_blank" style="font-family: Open Sans, Helvetica, Tahoma, Arial, sans-serif;"> 
-                                                                                        <img src="{{ asset('assets/admin/images/logo-email.png') }}" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" alt="HCDOC" height="auto" width="160"> 
+                                                                                        <img src="{{ asset('assets/admin/images/logo-hcdoc.png') }}" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" alt="HCDOC" height="auto" width="160"> 
                                                                                     </a> 
                                                                                 </td>
                                                                             </tr>
@@ -104,20 +104,19 @@
                                                                                     </div>
                                                                                 </td>
                                                                             </tr>
-                                                                            {{-- <tr>
+                                                                            <tr>
                                                                                 <td align="left" vertical-align="middle" style="font-family: Open Sans, Helvetica, Tahoma, Arial, sans-serif; font-size: 0px; padding: 0; word-break: break-word;">
                                                                                     <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;">
                                                                                     <tr>
                                                                                         <td align="center" bgcolor="#dd2c00" role="presentation" style="font-family: Open Sans, Helvetica, Tahoma, Arial, sans-serif; border: none; border-radius: 3px; cursor: auto; mso-padding-alt: 10px 25px; background: #dd2c00;" valign="middle"> 
-                                                                                            <a href="{{ route('dashboard') }}" style="display: inline-block; background: #dd2c00; color: #ffffff; font-family: Open Sans, Helvetica, Tahoma, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 120%; margin: 0; text-decoration: none; text-transform: none; padding: 10px 25px; mso-padding-alt: 0px; border-radius: 3px;" target="_blank"> 
+                                                                                            <a href="{{ route('admin.dashboard') }}" style="display: inline-block; background: #dd2c00; color: #ffffff; font-family: Open Sans, Helvetica, Tahoma, Arial, sans-serif; font-size: 18px; font-weight: bold; line-height: 120%; margin: 0; text-decoration: none; text-transform: none; padding: 10px 25px; mso-padding-alt: 0px; border-radius: 3px;" target="_blank"> 
                                                                                                 Login
                                                                                             </a> 
                                                                                         </td>
                                                                                     </tr>
                                                                                     </table>
                                                                                 </td>
-                                                                            </tr> --}}
-
+                                                                            </tr>
                                                                         </table>
                                                                     </td>
                                                                 </tr>

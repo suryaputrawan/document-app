@@ -96,7 +96,8 @@ class DocumentController extends Controller
                     return Carbon::parse($data->tgl_surat)->format('d M Y');
                 })
                 ->addColumn('sign', function ($data) {
-                    $signRoute      = 'document.sign';
+                    $signRoute      = 'document.uploadSign';
+                    $signatureRoute = 'document.signature';
                     $dataLabel      = $data->no_surat;
                     $dataId         = Crypt::encryptString($data->id);
                     $approvals      = $data->approval()->get();
@@ -111,9 +112,15 @@ class DocumentController extends Controller
                             $approval->pivot->karyawan_id == auth()->user()->karyawan_id && $approval->pivot->status_approval == 0
                         ) {
                             $sign .= '
-                            <button class="btn btn-success sign-document" 
+                            <button class="btn btn-icon btn-info sign-document" 
                             data-label="' . $dataLabel . '" data-url="' . route($signRoute, $dataId) . '">
-                                Sign Doc
+                            <i data-feather="upload"></i>
+                            </button> ';
+
+                            $sign .= '
+                            <button class="btn btn-icon btn-success signature-doc" 
+                            data-label="' . $dataLabel . '" data-url="' . route($signatureRoute, $dataId) . '">
+                            <i data-feather="edit-3"></i>
                             </button> ';
 
                             return $sign;
@@ -386,14 +393,14 @@ class DocumentController extends Controller
         }
     }
 
-    public function sign(Request $request, $id)
+    public function uploadSign(Request $request, $id)
     {
         $data = Karyawan::find(auth()->user()->karyawan_id);
 
         $validator = Validator::make([
             'picture'    => $request->picture
         ], [
-            'picture'    => 'required|mimes:png|max:1000',
+            'picture'    => 'required|mimes:jpg,jpeg,png|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -470,6 +477,113 @@ class DocumentController extends Controller
 
                     $data->update([
                         'ttd_picture'   => $picture,
+                    ]);
+
+                    DB::commit();
+
+                    return response()->json([
+                        'status'  => 200,
+                        'message' => "Document has been signature..!",
+                    ], 200);
+                } catch (\Throwable $th) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'  => 500,
+                        'message' => $th->getMessage(),
+                    ], 500);
+                }
+            } else {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Data not found..!',
+                ]);
+            }
+        }
+    }
+
+    public function signature(Request $request, $id)
+    {
+        $data = Karyawan::find(auth()->user()->karyawan_id);
+
+        $validator = Validator::make([
+            'signature'    => $request->signature
+        ], [
+            'signature'    => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 400,
+                'errors' => $validator->messages(),
+            ]);
+        } else {
+            if ($data) {
+                DB::beginTransaction();
+
+                $signatureData = $request->input('signature');
+
+                //Membuat kondisi langsung mendelete gambar yang lama pada storage
+                if (request('signature')) {
+                    if ($data->ttd_picture) {
+                        Storage::delete($data->ttd_picture);
+                    }
+                    $signatureFileName = 'signature_' . time() . '.png';
+                    Storage::put('ttd/' . $signatureFileName, base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $signatureData)));
+                }
+                //End Kondisi
+
+                try {
+
+                    $user = auth()->user()->karyawan_id;
+                    $id = Crypt::decryptString($id);
+
+                    $document = Document::find($id);
+                    $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
+                        ->first(['id', 'name', 'email']);
+                    $karyawan = Karyawan::where('id', $user)->first();
+
+                    $dataSignDiajukanPengirim = Document::where('id', $id)->where('pengirim_diajukan_oleh', $user)->first();
+                    $dataSignDisetujuiPengirim = Document::where('id', $id)->where('pengirim_disetujui_oleh', $user)->first();
+                    $dataSignApproval = DocumentApproval::where('document_id', $id)->where('karyawan_id', $user)->first();
+                    $dataSignRecipient = DocumentRecipient::where('document_id', $id)->where('karyawan_id', $user)->first();
+
+                    //Melakukan pengecekan data ada atau tidak
+                    if ($dataSignDiajukanPengirim != null) {
+                        $dataSignDiajukanPengirim->update([
+                            'status_pengirim_diajukan'   => 1
+                        ]);
+                    } elseif ($dataSignDisetujuiPengirim != null) {
+                        $dataSignDisetujuiPengirim->update([
+                            'status_pengirim_disetujui'   => 1
+                        ]);
+
+                        // Send email to pembuat surat
+                        Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
+                    } elseif ($dataSignApproval != null) {
+                        DB::table('document_approval')
+                            ->where('document_id', $id)
+                            ->where('karyawan_id', $user)
+                            ->update(['status_approval' => 1]);
+
+                        // Send email to pembuat surat
+                        Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
+                    } elseif ($dataSignRecipient != null) {
+                        DB::table('document_recipient')
+                            ->where('document_id', $id)
+                            ->where('karyawan_id', $user)
+                            ->update(['status_recipient' => 1]);
+
+                        // Send email to pembuat surat
+                        Mail::to($diajukanOleh->email)->send(new DocumentSignMail($document, $karyawan));
+                    } else {
+                        return response()->json([
+                            'status'  => 404,
+                            'message' => "Data not found!",
+                        ], 404);
+                    }
+
+                    $data->update([
+                        'ttd_picture'   => 'ttd/' . $signatureFileName,
                     ]);
 
                     DB::commit();

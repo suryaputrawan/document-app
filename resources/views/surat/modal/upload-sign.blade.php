@@ -7,15 +7,14 @@
 
             <form id="upload-picture-form" enctype="multipart/form-data">
                 @csrf
-                {{-- <input type="hidden" value="{{ auth()->user()->karyawan_id }}" name="karyawan" id="karyawan"> --}}
 
                 <div class="modal-body">
                     <div class="row form-row">
                         <div class="col-12 col-sm-12">
                             <div class="mb-3">
                                 <div class="form-group">
-                                    <label>Upload Signature File <span class="text-danger">(Max: 1Mb, Format: PNG) *</span></label>
-                                    <input name="picture" id="picture-upload" type="file" class="form-control" accept=".png" onchange="previewImages()">
+                                    <label>Upload Signature File <span class="text-danger">(Max: 1Mb, Format: JPG,JPEG,PNG) *</span></label>
+                                    <input name="picture" id="picture-upload" type="file" class="form-control" accept="image/*" onchange="previewImages()">
                                     <p id="error-picture" style="color: red" class="error"></p>
                                 </div>
                             </div>

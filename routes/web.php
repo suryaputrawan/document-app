@@ -33,7 +33,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 Route::group(['middleware' => ['auth']], function () {
     Route::resource('document', DocumentController::class);
 
-    Route::put('document/sign/{document}', [DocumentController::class, 'sign'])->name('document.sign');
+    Route::put('document/upload-sign/{document}', [DocumentController::class, 'uploadSign'])->name('document.uploadSign');
+    Route::post('document/signature/{document}', [DocumentController::class, 'signature'])->name('document.signature');
 });
 
 

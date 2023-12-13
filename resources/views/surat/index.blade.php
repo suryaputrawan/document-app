@@ -46,16 +46,31 @@
     </div>
 </div>
 @include('surat.modal.upload-sign')
+@include('surat.modal.signature-pad')
 @endsection
 
 
 @push('plugin-scripts')
   <script src="{{ asset('assets/admin/plugins/datatables-net/jquery.dataTables.js') }}"></script>
   <script src="{{ asset('assets/admin/plugins/datatables-net-bs4/dataTables.bootstrap4.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 @endpush
 
 @push('custom-scripts')
 <script type="text/javascript">
+    //----Signature Pad initialization
+    var canvas = document.getElementById('signaturePad');
+    var signaturePad = new SignaturePad(canvas);
+
+    function clearSignature() {
+        signaturePad.clear();
+    }
+
+    function isSignatureEmpty() {
+        return signaturePad.isEmpty();
+    }
+    //----End initialization
+
     //Preview Image
     function previewImages() {
         var preview = document.querySelector('#preview');
@@ -63,7 +78,6 @@
         var files = document.querySelector('input[type=file]').files;
     
         function readAndPreview(file) {
-            // Make sure `file.name` matches our extensions criteria
             if (/\.(jpe?g|png|gif)$/i.test(file.name)) {
                 var reader = new FileReader();
                 reader.addEventListener('load', function() {
@@ -84,8 +98,6 @@
     };
 
     $(document).ready(function(){
-
-        // datatable initialization
         let dataTable = $("#datatable").DataTable({
             ...tableOptions,
             ajax: "{{ route('document.index') }}?type=datatable",
@@ -144,7 +156,7 @@
         }
         //---End Form environment
 
-        //----Modal
+        //----Modal Upload Signature
         $(document).on('click', '.sign-document', function(e) {
             $('#modal-upload-sign').modal('show');
             $('#title-modal-sign').text('Upload Signature');
@@ -237,6 +249,127 @@
             });
         });
         //------ End Submit Data Upload Signature
+
+
+        //----form environtment signature pad
+        function clearSignaturePad() {
+            $('#signature-form').find('.error').text("");
+            clearSignature();
+        }
+        //---End Form environment
+
+        //----Modal Signature pad
+        $(document).on('click', '.signature-doc', function(e) {
+            $('#modal-signature-pad').modal('show');
+            $("#btn-submit-signature").text("Sign Document");
+            clearSignature();
+
+            ajaxUrl = $(this).data('url');
+        });
+
+        $(".btn-cancel-signature").click(function() {
+            $('#modal-signature-pad').modal('hide');
+            clearSignaturePad();
+        });
+        //----End Modal
+
+        //------ Submit Data Signature Pad
+        $('#signature-form').on('submit', function(e) {
+            var submitButton = $(this).find("button[type='submit']");
+            var submitButtonLoading = $(this).find("button[type='submit'] #submit-signature-loading");
+            submitButton.prop('disabled',true);
+            submitButtonLoading.toggle();
+
+            if (isSignatureEmpty()) {
+                e.preventDefault();
+
+                $('#error-signature').text("");
+                $('#error-signature').append('Signature is empty. Please provide a signature.');
+                submitButton.prop('disabled',false);
+                submitButtonLoading.toggle();
+            } else {
+                e.preventDefault();
+
+                var signatureInput = document.getElementById('signatureInput');
+                signatureInput.value = signaturePad.toDataURL();
+
+                $('#signature-form').find('.error').text("");
+                $('.btn-cancel-signature').toggle();
+                $('#clear-signature').toggle();
+
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type   : "POST",
+                    url    : ajaxUrl,
+                    data   : {
+                        _token: '{{ csrf_token() }}',
+                        signature: signaturePad.toDataURL()
+                    },
+                    success: function(response) {     
+
+                        submitButton.prop('disabled',false);
+                        submitButtonLoading.toggle();
+
+                        if (response.status == 200) {
+                            clearSignaturePad();
+
+                            $('#modal-signature-pad').modal('hide');
+                            $('#datatable').DataTable().ajax.reload();
+
+                            $('.btn-cancel-signature').toggle();
+                            $('#clear-signature').toggle();
+
+                            Toast.fire({
+                                icon: 'success',
+                                title: response.message,
+                            });
+                        } else if (response.status == 400) {
+                            $.each(response.errors.signature, function(key, error) {
+                                $('#error-signature').append(error);
+                            });
+
+                            $('.btn-cancel-signature').toggle();
+                            $('#clear-signature').toggle();
+                        } else {
+                            Toast.fire({
+                                icon: 'warning',
+                                title: response.message,
+                            });
+
+                            $('.btn-cancel-signature').toggle();
+                            $('#clear-signature').toggle();
+                        }
+                    },
+                    error: function(response){
+                        submitButton.prop('disabled',false);
+                        submitButtonLoading.toggle();
+
+                        Toast.fire({
+                            icon: 'error',
+                            title: response.responseJSON.message ?? 'Oops,.. Something went wrong!',
+                        });
+
+                        $('.btn-cancel-signature').toggle();
+                        $('#clear-signature').toggle();
+                    }
+                });
+            }            
+        });
+        //------ End Submit Data Signature pad
     });
 </script>
 @endpush

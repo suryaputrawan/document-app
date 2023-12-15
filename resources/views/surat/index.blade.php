@@ -2,6 +2,7 @@
 
 @push('plugin-styles')
   <link href="{{ asset('assets/admin/plugins/datatables-net/dataTables.bootstrap4.css') }}" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 @endpush
 
 @section('content')
@@ -18,7 +19,7 @@
             <div class="card-header flex flex-align-center">
                 <h6 class="card-title flex-full-width mb-0">Documents</h6>
                 @can('create document')
-                    <a href="{{ route('document.create') }}" type="button" class="btn btn-sm btn-primary btn-icon-text">
+                    <a id="btn-create" type="button" class="btn btn-sm btn-primary btn-icon-text">
                         <i class="btn-icon-prepend" data-feather="plus"></i>
                         Tambah
                     </a>
@@ -47,6 +48,7 @@
 </div>
 @include('surat.modal.upload-sign')
 @include('surat.modal.signature-pad')
+@include('surat.modal.pilih-jenis')
 @endsection
 
 
@@ -54,10 +56,15 @@
   <script src="{{ asset('assets/admin/plugins/datatables-net/jquery.dataTables.js') }}"></script>
   <script src="{{ asset('assets/admin/plugins/datatables-net-bs4/dataTables.bootstrap4.js') }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 @endpush
 
 @push('custom-scripts')
 <script type="text/javascript">
+    $('#jenis-document').select2({
+        dropdownParent: $('#modal-pilih-jenis')
+    });
+
     //----Signature Pad initialization
     var canvas = document.getElementById('signaturePad');
     var signaturePad = new SignaturePad(canvas);
@@ -368,6 +375,99 @@
                     }
                 });
             }            
+        });
+        //------ End Submit Data Signature pad
+
+
+        //-----Modal Pilih Jenis Document
+        $(document).on('click', '#btn-create', function(e) {
+            $('#modal-pilih-jenis').modal('show');
+            $("#btn-submit-jenis").text("Create");
+        });
+
+        $(".btn-cancel-jenis").click(function() {
+            $('#modal-pilih-jenis').modal('hide');
+            $('#jenis-document').val('').trigger('change');
+        });
+
+        //------ Submit Data modal pilih jenis
+        $('#pilih-jenis-form').on('submit', function(e) {
+            e.preventDefault();
+
+            var jenisDocument = $('#jenis-document').val();
+            var url = "{{ route('document.create') }}";
+
+            var submitButton = $(this).find("button[type='submit']");
+            var submitButtonLoading = $(this).find("button[type='submit'] #submit-jenis-loading");
+            submitButton.prop('disabled',true);
+            submitButtonLoading.toggle();
+
+            $('.btn-cancel-jenis').toggle();
+            $('#pilih-jenis-form').find('.error').text("");
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+            
+
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type   : "POST",
+                url    : "{{ route('document.jenisDocument') }}",
+                data   : {
+                    _token: '{{ csrf_token() }}',
+                    jenis_document: jenisDocument
+                },
+                success: function(response) {    
+                    
+                    console.log(response);
+
+                    submitButton.prop('disabled',false);
+                    submitButtonLoading.toggle();
+
+                    if (response.status == 200) {
+                        window.location.href = url+'?jenis_document='+jenisDocument;
+
+                        $('#modal-pilih-jenis').modal('hide');
+                        $('.btn-cancel-jenis').toggle();
+                        $('#jenis-document').val('').trigger('change');
+                    } else if (response.status == 400) {
+                        $.each(response.errors.jenis_document, function(key, error) {
+                            $('#error-jenis-document').append(error);
+                        });
+
+                        $('.btn-cancel-jenis').toggle();
+                    } else {
+                        $('.btn-cancel-jenis').toggle();
+
+                        Toast.fire({
+                            icon: 'warning',
+                            title: response.message,
+                        });
+                    }
+                },
+                error: function(response){
+                    submitButton.prop('disabled',false);
+                    submitButtonLoading.toggle();
+
+                    $('.btn-cancel-jenis').toggle();
+
+                    Toast.fire({
+                        icon: 'error',
+                        title: response.responseJSON.message ?? 'Oops,.. Something went wrong!',
+                    });
+                }
+            });
         });
         //------ End Submit Data Signature pad
     });

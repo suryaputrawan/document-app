@@ -7,26 +7,45 @@
         font-size: 12pt;
         width: auto; 
         height: auto; 
-        position: absolute; 
-        padding-top: 80px; 
+        /* position: absolute;  */
+        padding-top: 60px; 
         padding-left: 30px; 
         padding-right: 30px; 
         padding-bottom: 30px;
       }
+
+    .custom-table {
+        width: 100%;
+    }
+
+    .custom-table th, .custom-table td {
+        border: none;
+    }
+
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    table, th, td {
+        border: 1px solid black;
+    }
+
+    
     </style>
 </head>
 
 <body>
     <div id=halaman>
-        <table style="margin-left:auto;margin-right:auto;" width="100%" cellspcing="0">
+        <table class="custom-table" style="margin-left:auto;margin-right:auto;border:none" width="100%" cellspcing="0">
             <tr>
                 <td align="center" style="font-size: 20px"><u><b>{{ $data->jenis->nama }}</b></u></td>
             </tr>
             <tr>
                 <td align="center" style="font-size: 14px">No. {{ $data->no_surat }}</td>
             </tr>
-        </table>
-        <p>Yang bertanda tangan di bawah ini:
+        </table><br>
+        {{-- <p>Yang bertanda tangan di bawah ini:
         <table width="100%" cellspacing="0">
             <tr>
                 <td>Nama </td>
@@ -43,14 +62,14 @@
                 <td>: </td>
                 <td>{{ $data->diajukanOleh->jabatan }}</td>
             </tr>
-        </table>
+        </table> --}}
 
         {!! $data->body !!}
 
-        <br><p>Bali, {{ \Carbon\Carbon::parse($data->tgl_surat)->format('d M Y') }}</p><br>
+        <br><p style="font-size: 11pt">Bali, {{ \Carbon\Carbon::parse($data->tgl_surat)->format('d M Y') }}</p>
         
         {{-- Tanda Tangan --}}
-        <table style="margin-left:auto;margin-right:auto;font-size: 10pt;" cellspacing="0" cellpadding="7">
+        <table class="custom-table" style="margin-left:auto;margin-right:auto;font-size: 10pt;border:none" cellspacing="0" cellpadding="7">
             <tr>
                 <td align="center" colspan="2">Pihak Pengirim</td>
                 <td align="center" colspan="{{ $recipient->count() }}">Pihak Penerima</td>
@@ -105,7 +124,7 @@
 
         <br><br>
         {{-- Tanda Tangan Menyetujui --}}
-        <table style="margin-left:auto;margin-right:auto;font-size: 10pt" cellspacing="0" cellpadding="7">
+        <table class="custom-table" style="margin-left:auto;margin-right:auto;font-size: 10pt;border:none" cellspacing="0" cellpadding="7">
             <tr>
                 <td align="center" colspan="{{ $approval->count() }}">Disetujui Oleh,</td>
             </tr>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\JenisController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DocumentTemplateController;
 use App\Http\Controllers\Permissions\RoleController;
 use App\Http\Controllers\Permissions\UserController;
 use App\Http\Controllers\Permissions\AssignController;
@@ -22,6 +23,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::group(['prefix' => 'master'], function () {
             Route::resource('jenis', JenisController::class);
             Route::resource('karyawan', KaryawanController::class);
+            Route::resource('document-template', DocumentTemplateController::class);
         });
 
         Route::group(['prefix' => 'profile'], function () {

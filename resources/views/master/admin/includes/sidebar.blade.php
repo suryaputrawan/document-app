@@ -33,6 +33,12 @@
                         <span class="link-title">Jenis Document</span>
                     </a>
                 </li>
+                <li class="nav-item {{ active_class(['admin/master/document-template', 'admin/master/document-template/*']) }}">
+                    <a href="{{ route('admin.document-template.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="file-text"></i>
+                        <span class="link-title">Document Template</span>
+                    </a>
+                </li>
                 <li class="nav-item {{ active_class(['admin/master/karyawan', 'admin/master/karyawan/*']) }}">
                     <a href="{{ route('admin.karyawan.index') }}" class="nav-link">
                         <i class="link-icon" data-feather="user"></i>
@@ -68,31 +74,6 @@
                     </a>
                 </li>
             @endcan
-            
-            {{-- <li class="nav-item {{ active_class(['admin/master/specialists', 'admin/master/specialists/*']) }}">
-                <a href="{{ route('admin.specialists.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="user"></i>
-                    <span class="link-title">Specialists</span>
-                </a>
-            </li>
-            <li class="nav-item {{ active_class(['admin/master/sub-specialists', 'admin/master/sub-specialists/*']) }}">
-                <a href="{{ route('admin.sub-specialists.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="user"></i>
-                    <span class="link-title">Sub Specialists</span>
-                </a>
-            </li>
-            <li class="nav-item {{ active_class(['admin/master/sites', 'admin/master/sites/*']) }}">
-                <a href="{{ route('admin.sites.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="home"></i>
-                    <span class="link-title">Sites</span>
-                </a>
-            </li>
-            <li class="nav-item {{ active_class(['admin/master/doctors', 'admin/master/doctors/*']) }}">
-                <a href="{{ route('admin.doctors.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="user"></i>
-                    <span class="link-title">Doctors</span>
-                </a>
-            </li> --}}
         </ul>
     </div>
 </nav>

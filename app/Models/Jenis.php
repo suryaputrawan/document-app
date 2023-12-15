@@ -16,4 +16,9 @@ class Jenis extends Model
     {
         return $this->hasMany(Document::class, 'id');
     }
+
+    public function documentTemplate()
+    {
+        return $this->belongsTo(DocumentTemplate::class, 'id');
+    }
 }

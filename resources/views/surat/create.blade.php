@@ -58,11 +58,12 @@
                         <div class="col-sm-4">
                             <div class="mb-3">
                                 <label class="form-label">Jenis Document <span class="text-danger">*</span></label>
-                                <select name="jenis_document" class="js-example-basic-single form-select @error('jenis_document') is-invalid @enderror" data-width="100%">
+                                <input type="hidden" name="jenis_document" class="@error('jenis_document') is-invalid @enderror" value="{{ $template->jenis_id }}">
+                                <select class="js-example-basic-single form-select" data-width="100%" disabled>
                                     <option selected disabled>-- Pilih Jenis Document --</option>
                                     @foreach ($jenis as $item)
                                     <option value="{{ $item->id }}"
-                                        {{ old('jenis_document') == $item->id ? 'selected' : null }}>{{ $item->nama }}
+                                        {{ old('jenis_document', $template->jenis_id) == $item->id ? 'selected' : null }}>{{ $item->nama }}
                                     </option>
                                     @endforeach
                                 </select>
@@ -242,7 +243,7 @@
                         <div class="col-sm-12">
                             <div class="mb-3">
                                 <label class="form-label">Isi Document <span class="text-danger">*</span></label>
-                                <textarea name="isi_document" id="textBody" class="form-control @error('isi_document') is-invalid @enderror" >{{ old('isi_document') }}</textarea>
+                                <textarea name="isi_document" id="textBody" class="form-control @error('isi_document') is-invalid @enderror" >{{ old('isi_document') ?? $template->template }}</textarea>
                                 @error('isi_document')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror

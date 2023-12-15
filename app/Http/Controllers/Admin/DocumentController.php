@@ -18,6 +18,7 @@ use App\Models\DocumentRecipient;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DocumentRequest;
+use App\Models\DocumentTemplate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
@@ -147,20 +148,37 @@ class DocumentController extends Controller
 
         return view('surat.index', [
             'breadcrumb' => 'Document',
+            'jenis'      => Jenis::orderBy('nama', 'asc')->get()
         ]);
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        return view('surat.create', [
-            'breadcrumb'    => 'Document',
-            'btnSubmit'     => 'Simpan',
-            'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
-            'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan'])
-        ]);
+        try {
+            $msJenis = Jenis::where('nama', $request->jenis_document)->first();
+            $template = DocumentTemplate::where('jenis_id', $msJenis->id)->first();
+
+            if (!$template) {
+                return redirect()
+                    ->back()
+                    ->with('error', "Template document not found..");
+            }
+
+            return view('surat.create', [
+                'breadcrumb'    => 'Document',
+                'btnSubmit'     => 'Simpan',
+                'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
+                'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan']),
+                'template'      => $template
+            ]);
+        } catch (\Throwable $e) {
+            return redirect()
+                ->back()
+                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+        }
     }
 
     /**
@@ -259,7 +277,7 @@ class DocumentController extends Controller
             'approval'  => $data->approval,
             'recipient' => $data->recipient,
         ]);
-        return $pdf->setPaper('a4', 'portrait')->stream();
+        return $pdf->setPaper('A4', 'portrait')->stream();
     }
 
     /**
@@ -412,7 +430,6 @@ class DocumentController extends Controller
             if ($data) {
                 DB::beginTransaction();
 
-                //Membuat kondisi langsung mendelete gambar yang lama pada storage
                 if (request('picture')) {
                     if ($data->ttd_picture) {
                         Storage::delete($data->ttd_picture);
@@ -423,7 +440,6 @@ class DocumentController extends Controller
                 } else {
                     $picture = null;
                 }
-                //End Kondisi
 
                 try {
 
@@ -604,6 +620,44 @@ class DocumentController extends Controller
                     'status' => 404,
                     'message' => 'Data not found..!',
                 ]);
+            }
+        }
+    }
+
+    public function pilihJenisDocument(Request $request)
+    {
+        $validator = Validator::make([
+            'jenis_document' => $request->jenis_document
+        ], [
+            'jenis_document' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 400,
+                'errors' => $validator->messages(),
+            ]);
+        } else {
+            $msJenis = Jenis::where('nama', $request->jenis_document)->first();
+            $template = DocumentTemplate::where('jenis_id', $msJenis->id)->first();
+
+            try {
+                if ($template) {
+                    return response()->json([
+                        'status'    => 200,
+                        'url'       => "{{ route('document.create') }}",
+                    ], 200);
+                } else {
+                    return response()->json([
+                        'status'  => 500,
+                        'message' => 'Template untuk ' . $msJenis->nama . ' belum dibuat, silahkan buat template untuk jenis document tersebut',
+                    ], 500);
+                }
+            } catch (Throwable $th) {
+                return response()->json([
+                    'status'  => 500,
+                    'message' => $th->getMessage(),
+                ], 500);
             }
         }
     }

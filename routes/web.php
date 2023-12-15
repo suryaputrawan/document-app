@@ -35,6 +35,8 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::put('document/upload-sign/{document}', [DocumentController::class, 'uploadSign'])->name('document.uploadSign');
     Route::post('document/signature/{document}', [DocumentController::class, 'signature'])->name('document.signature');
+    Route::post('document/pilih-jenis', [DocumentController::class, 'pilihJenisDocument'])
+        ->name('document.jenisDocument');
 });
 
 

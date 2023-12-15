@@ -18,7 +18,8 @@ class PermissionSeeder extends Seeder
             'view master', 'assign permission',
             'create karyawan', 'edit karyawan', 'delete karyawan',
             'create jenis', 'edit jenis', 'update jenis',
-            'create document', 'edit document', 'delete document'
+            'create document', 'edit document', 'delete document',
+            'create template', 'edit template', 'delete template'
         ];
 
         foreach ($permissions as $data) {

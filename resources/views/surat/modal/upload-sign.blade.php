@@ -7,7 +7,6 @@
 
             <form id="upload-picture-form" enctype="multipart/form-data">
                 @csrf
-
                 <div class="modal-body">
                     <div class="row form-row">
                         <div class="col-12 col-sm-12">

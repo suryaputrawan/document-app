@@ -31,7 +31,7 @@ class JenisController extends Controller
 
                     $action = "";
 
-                    if ($user->can('edit jenis')) {
+                    if ($user->can('update jenis')) {
                         $action .= '
                         <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
                             <i data-feather="edit"></i>

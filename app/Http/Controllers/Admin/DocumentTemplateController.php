@@ -33,7 +33,7 @@ class DocumentTemplateController extends Controller
 
                     $action = "";
 
-                    if ($user->can('edit template')) {
+                    if ($user->can('update template')) {
                         $action .= '
                         <a class="btn btn-warning btn-icon" type="button" href="' . route($editRoute, $dataId) . '">
                             <i data-feather="edit"></i>

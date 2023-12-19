@@ -68,7 +68,7 @@ class DocumentController extends Controller
 
                     if ($data->created_by == auth()->user()->karyawan_id || auth()->user()->username == 'superadmin') {
                         if ($data->status_pengirim_diajukan == 0 && $data->status_pengirim_disetujui == 0) {
-                            if ($user->can('edit document')) {
+                            if ($user->can('update document')) {
                                 $action .= '
                                 <a class="btn btn-warning btn-icon" type="button" href="' . route($editRoute, $dataId) . '">
                                     <i data-feather="edit"></i>

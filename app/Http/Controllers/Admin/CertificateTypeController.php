@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use Throwable;
-use App\Models\User;
-use App\Models\Karyawan;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Models\CertificateType;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
-class KaryawanController extends Controller
+class CertificateTypeController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -20,26 +19,26 @@ class KaryawanController extends Controller
     public function index()
     {
         if (request()->type == 'datatable') {
-            $data = Karyawan::orderBy('nama', 'ASC')->get();
+            $data = CertificateType::orderBy('name', 'asc')->get(['id', 'name']);
 
             return datatables()->of($data)
                 ->addColumn('action', function ($data) {
                     $user            = auth()->user();
-                    $editRoute       = 'admin.karyawan.edit';
-                    $deleteRoute     = 'admin.karyawan.destroy';
+                    $editRoute       = 'admin.certificate-types.edit';
+                    $deleteRoute     = 'admin.certificate-types.destroy';
                     $dataId          = Crypt::encryptString($data->id);
-                    $dataDeleteLabel = $data->nama;
+                    $dataDeleteLabel = $data->name;
 
                     $action = "";
 
-                    if ($user->can('update karyawan')) {
+                    if ($user->can('update certificate type')) {
                         $action .= '
                         <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
                             <i data-feather="edit"></i>
                         </a> ';
                     }
 
-                    if ($user->can('delete karyawan')) {
+                    if ($user->can('delete certificate type')) {
                         $action .= '
                         <button class="btn btn-danger btn-icon delete-item" 
                             data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
@@ -52,15 +51,12 @@ class KaryawanController extends Controller
                     </div>';
                     return $group;
                 })
-                ->addColumn('gambar', function ($data) {
-                    return $data->ttd_picture ? '<img src="' . $data->takeImage . '" alt="Gambar" width="50">' : '';
-                })
-                ->rawColumns(['action', 'gambar'])
+                ->rawColumns(['action'])
                 ->make(true);
         }
 
-        return view('admin.modules.karyawan.index', [
-            'breadcrumb' => 'Karyawan'
+        return view('admin.modules.certificate-type.index', [
+            'breadcrumb' => 'Certificate Types'
         ]);
     }
 
@@ -78,17 +74,9 @@ class KaryawanController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make([
-            'nama'      => $request->nama,
-            'nip'       => $request->nip,
-            'jabatan'   => $request->jabatan,
-            'email'     => $request->email,
-            'gambar'    => $request->gambar
+            'name' => $request->name
         ], [
-            'nama'      => 'required|max:100|min:3|unique:karyawan,nama,NULL,id',
-            'email'     => 'required|unique:users,email',
-            'gambar'    =>  request('gambar') ? 'mimes:jpg,jpeg,png|max:1000' : '',
-            'jabatan'   => 'required|min:5',
-            'nip'       => 'required|min:10|unique:karyawan,nip'
+            'name' => 'required|min:3|unique:certificate_types,name',
         ]);
 
         if ($validator->fails()) {
@@ -99,23 +87,13 @@ class KaryawanController extends Controller
         } else {
             DB::beginTransaction();
             try {
-                $karyawan = Karyawan::create([
-                    'nama'          => $request->nama,
-                    'nip'           => $request->nip,
-                    'jabatan'       => $request->jabatan,
-                    'ttd_picture'   => request('gambar') ? $request->file('gambar')->store('ttd') : null
-                ]);
-                User::create([
-                    'name'          => $request->nama,
-                    'username'      => $request->nip,
-                    'email'         => $request->email,
-                    'password'      => bcrypt($request->nip),
-                    'karyawan_id'   => $karyawan->id,
+                CertificateType::create([
+                    'name' => Str::upper($request->name)
                 ]);
                 DB::commit();
                 return response()->json([
                     'status'  => 200,
-                    'message' => 'Karyawan berhasil ditambahkan',
+                    'message' => 'Certificate type has been success to created',
                 ], 200);
             } catch (Throwable $th) {
                 DB::rollBack();
@@ -130,7 +108,7 @@ class KaryawanController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Karyawan $karyawan)
+    public function show(CertificateType $certificateType)
     {
         //
     }
@@ -142,7 +120,7 @@ class KaryawanController extends Controller
     {
         try {
             $id = Crypt::decryptString($id);
-            $data = Karyawan::with('user')->find($id);
+            $data = CertificateType::find($id);
 
             if ($data) {
                 return response()->json([
@@ -152,7 +130,7 @@ class KaryawanController extends Controller
             } else {
                 return response()->json([
                     'status' => 404,
-                    'message' => 'Karyawan Not Found',
+                    'message' => 'Certificate type not found',
                 ]);
             }
         } catch (\Throwable $e) {
@@ -168,27 +146,12 @@ class KaryawanController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $data = Karyawan::with([
-            'user'  => function ($query) {
-                return $query->select('id', 'email', 'karyawan_id');
-            }
-        ])->find($id);
-
-        $user = User::where('karyawan_id', $data->id)
-            ->first(['id', 'name', 'email', 'karyawan_id']);
+        $data = CertificateType::find($id);
 
         $validator = Validator::make([
-            'nama'      => $request->nama,
-            'nip'       => $request->nip,
-            'jabatan'   => $request->jabatan,
-            'email'     => $request->email,
-            'gambar'    => $request->gambar
+            'name' => $request->name
         ], [
-            'nama'      => 'required|max:100|min:3|unique:karyawan,nama,' . $data->id,
-            'email'     => 'required|unique:users,email,' . $data->user->id,
-            'gambar'    => request('gambar') ? 'mimes:jpg,jpeg,png|max:1000' : '',
-            'jabatan'   => 'required|min:5',
-            'nip'       => 'required|min:10|unique:karyawan,nip,' . $data->id
+            'name' => 'required|min:3|unique:certificate_types,name,' . $data->id,
         ]);
 
         if ($validator->fails()) {
@@ -199,37 +162,14 @@ class KaryawanController extends Controller
         } else {
             if ($data) {
                 DB::beginTransaction();
-
-                //Membuat kondisi langsung mendelete gambar yang lama pada storage
-                if (request('gambar')) {
-                    if ($data->ttd_picture) {
-                        Storage::delete($data->ttd_picture);
-                    }
-                    $picture = request()->file('gambar')->store('ttd');
-                } elseif ($data->ttd_picture) {
-                    $picture = $data->ttd_picture;
-                } else {
-                    $picture = null;
-                }
-
                 try {
                     $data->update([
-                        'nama'          => $request->nama,
-                        'nip'           => $request->nip,
-                        'jabatan'       => $request->jabatan,
-                        'ttd_picture'   => $picture,
-                    ]);
-
-                    $user->update([
-                        'name'      => $request->nama,
-                        'username'  => $request->nip,
-                        'email'     => $request->email
+                        'name' => Str::upper($request->name)
                     ]);
                     DB::commit();
-
                     return response()->json([
                         'status'  => 200,
-                        'message' => 'Karyawan has been updated',
+                        'message' => 'Certificate type has been updated',
                     ], 200);
                 } catch (\Throwable $th) {
                     DB::rollBack();
@@ -252,10 +192,9 @@ class KaryawanController extends Controller
      */
     public function destroy($id)
     {
-        DB::beginTransaction();
         try {
             $id = Crypt::decryptString($id);
-            $data = Karyawan::find($id);
+            $data = CertificateType::find($id);
 
             if (!$data) {
                 return response()->json([
@@ -264,18 +203,11 @@ class KaryawanController extends Controller
                 ], 404);
             }
 
-            //Kondisi apabila terdapat path gambar pada tabel slider
-            if ($data->ttd_picture != null) {
-                Storage::delete($data->ttd_picture);
-            }
-
             $data->delete();
-
-            DB::commit();
 
             return response()->json([
                 'status'  => 200,
-                'message' => "Karyawan telah berhasil dihapus",
+                'message' => "Certificate type has been deleted",
             ], 200);
         } catch (\Throwable $e) {
             return response()->json([

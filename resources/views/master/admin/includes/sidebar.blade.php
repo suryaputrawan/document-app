@@ -24,6 +24,12 @@
                     <span class="link-title">Document</span>
                 </a>
             </li>
+            <li class="nav-item {{ active_class(['certificates', 'certificates/*']) }}">
+                <a href="{{ route('certificates.index') }}" class="nav-link">
+                    <i class="link-icon" data-feather="file-text"></i>
+                    <span class="link-title">Certificates</span>
+                </a>
+            </li>
             
             @can('view master')
                 <li class="nav-item nav-category">Master</li>
@@ -43,6 +49,12 @@
                     <a href="{{ route('admin.karyawan.index') }}" class="nav-link">
                         <i class="link-icon" data-feather="user"></i>
                         <span class="link-title">Karyawan</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ active_class(['admin/master/certificate-types', 'admin/master/certificate-types/*']) }}">
+                    <a href="{{ route('admin.certificate-types.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="file-text"></i>
+                        <span class="link-title">Certificate Types</span>
                     </a>
                 </li>
             @endcan

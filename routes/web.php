@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Client\CertificateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +38,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('document/signature/{document}', [DocumentController::class, 'signature'])->name('document.signature');
     Route::post('document/pilih-jenis', [DocumentController::class, 'pilihJenisDocument'])
         ->name('document.jenisDocument');
+
+    Route::resource('certificates', CertificateController::class);
 });
 
 

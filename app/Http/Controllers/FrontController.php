@@ -14,8 +14,6 @@ class FrontController extends Controller
         $doctors = Doctor::orderBy('name')->get()
             ->groupBy('specialist.name');
 
-        // dd($doctors);
-
         return view('front', [
             'doctors'     => $doctors
         ]);

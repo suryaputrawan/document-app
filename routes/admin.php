@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\Admin\CertificateTypeController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\JenisController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\KaryawanController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\DocumentTemplateController;
 use App\Http\Controllers\Permissions\RoleController;
 use App\Http\Controllers\Permissions\UserController;
 use App\Http\Controllers\Permissions\AssignController;
+use App\Http\Controllers\Admin\DocumentTemplateController;
 use App\Http\Controllers\Permissions\PermissionController;
 
 Route::get('/', function () {
@@ -24,6 +25,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::resource('jenis', JenisController::class);
             Route::resource('karyawan', KaryawanController::class);
             Route::resource('document-template', DocumentTemplateController::class);
+            Route::resource('certificate-types', CertificateTypeController::class);
         });
 
         Route::group(['prefix' => 'profile'], function () {

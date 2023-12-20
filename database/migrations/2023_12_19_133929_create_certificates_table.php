@@ -20,7 +20,9 @@ return new class extends Migration
             $table->string('employee_name');
             $table->foreignId('certificate_type_id')->constrained('certificate_types')->restrictOnDelete();
             $table->text('file')->nullable();
+            $table->foreignId('hospital_id')->constrained('hospitals')->restrictOnDelete();
             $table->foreignId('user_created')->constrained('users')->restrictOnDelete();
+            $table->tinyInteger('isNotif')->default(1);
             $table->timestamps();
         });
     }

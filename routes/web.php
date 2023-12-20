@@ -40,6 +40,7 @@ Route::group(['middleware' => ['auth']], function () {
         ->name('document.jenisDocument');
 
     Route::resource('certificates', CertificateController::class);
+    Route::post('update-notif/{certificates}', [CertificateController::class, 'notif'])->name('certificates.notif');
 });
 
 

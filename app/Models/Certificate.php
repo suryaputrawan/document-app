@@ -20,7 +20,9 @@ class Certificate extends Model
         'employee_name',
         'certificate_type_id',
         'file',
-        'user_created'
+        'hospital_id',
+        'user_created',
+        'isNotif'
     ];
 
     public function getTakeFileAttribute()
@@ -40,5 +42,10 @@ class Certificate extends Model
     public function certificateType(): BelongsTo
     {
         return $this->belongsTo(CertificateType::class, 'certificate_type_id');
+    }
+
+    public function hospital(): BelongsTo
+    {
+        return $this->belongsTo(Hospital::class, 'hospital_id');
     }
 }

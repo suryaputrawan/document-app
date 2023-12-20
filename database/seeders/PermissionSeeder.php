@@ -21,7 +21,8 @@ class PermissionSeeder extends Seeder
             'create document', 'update document', 'delete document',
             'create template', 'update template', 'delete template',
             'create certificate type', 'update certificate type', 'delete certificate type',
-            'create certificate', 'view certificate', 'update certificate', 'delete certificate'
+            'create certificate', 'view certificate', 'update certificate', 'delete certificate',
+            'create hospital', 'update hospital', 'delete hospital'
         ];
 
         foreach ($permissions as $data) {

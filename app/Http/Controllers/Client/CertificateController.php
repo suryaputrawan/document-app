@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\CertificateType;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\Hospital;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
@@ -20,11 +21,8 @@ class CertificateController extends Controller
      */
     public function index()
     {
-        $certificateEndDate = Certificate::get();
-
-        foreach ($certificateEndDate as $dataCertificate) {
-            $dataEndDate = Certificate::where('end_date', '<=', Carbon::now()->addDay(7))->get();
-        }
+        $dataEndDate = Certificate::where('end_date', '<=', Carbon::now()->addDay(7))
+            ->where('isNotif', 1)->get();
 
         if (request()->type == 'datatable') {
             $data = Certificate::latest()->get();
@@ -76,14 +74,22 @@ class CertificateController extends Controller
                 ->addColumn('type', function ($data) {
                     return $data->certificateType->name;
                 })
-                ->rawColumns(['action', 'type', 'start_date', 'end_date'])
+                ->addColumn('notif', function ($data) {
+                    $updateNotif    = 'certificates.notif';
+                    $dataId         = Crypt::encryptString($data->id);
+
+                    return '<div><input type="checkbox" name="notification" class="checkbox" ' . ($data->isNotif ? 'checked' : '') . '
+                        data-url="' . route($updateNotif, $dataId) . '"></div>';
+                })
+                ->rawColumns(['action', 'type', 'start_date', 'end_date', 'notif'])
                 ->make(true);
         }
 
         return view('certificate.index', [
             'breadcrumb'    => 'Certificates',
             'types'         => CertificateType::orderBy('name', 'asc')->get(['id', 'name']),
-            'dataEndDate'       => $dataEndDate
+            'hospital'      => Hospital::orderBy('name', 'asc')->get(['id', 'name']),
+            'dataEndDate'   => $dataEndDate
         ]);
     }
 
@@ -110,7 +116,8 @@ class CertificateController extends Controller
                 'start_date'            => $request->start_date,
                 'end_date'              => $request->end_date,
                 'employee'              => $request->employee,
-                'file'                  => $request->file
+                'file'                  => $request->file,
+                'hospital'              => $request->hospital
             ], [
                 'certificate_number'    => 'required|min:5|unique:certificates,certificate_number',
                 'type'                  => 'required',
@@ -119,6 +126,7 @@ class CertificateController extends Controller
                 'end_date'              => 'required',
                 'employee'              => 'required|min:5',
                 'file'                  => 'required|mimes:jpg,jpeg,png,pdf|max:1000',
+                'hospital'              => 'required'
             ]);
 
             if ($request->start_date > $request->end_date) {
@@ -147,6 +155,7 @@ class CertificateController extends Controller
                         'end_date'              => $request->end_date,
                         'employee_name'         => $request->employee,
                         'file'                  => $request->file('file')->store('certificates'),
+                        'hospital_id'           => $request->hospital,
                         'user_created'          => auth()->user()->id,
                     ]);
                     DB::commit();
@@ -177,7 +186,7 @@ class CertificateController extends Controller
         if ($user->can('update certificate')) {
             try {
                 $id = Crypt::decryptString($id);
-                $data = Certificate::with('certificateType')->find($id);
+                $data = Certificate::with(['certificateType', 'hospital'])->find($id);
 
                 if ($data) {
                     return response()->json([
@@ -252,7 +261,8 @@ class CertificateController extends Controller
                 'start_date'            => $request->start_date,
                 'end_date'              => $request->end_date,
                 'employee'              => $request->employee,
-                'file'                  => $request->file
+                'file'                  => $request->file,
+                'hospital'              => $request->hospital
             ], [
                 'certificate_number'    => 'required|min:5|unique:certificates,certificate_number,' . $data->id,
                 'type'                  => 'required',
@@ -261,6 +271,7 @@ class CertificateController extends Controller
                 'end_date'              => 'required',
                 'employee'              => 'required|min:5',
                 'file'                  => request('file') ? 'mimes:jpg,jpeg,png,pdf|max:1000' : '',
+                'hospital'              => 'required'
             ]);
 
             if ($request->start_date > $request->end_date) {
@@ -296,12 +307,13 @@ class CertificateController extends Controller
                     try {
                         $data->update([
                             'certificate_number'    => $request->certificate_number,
-                            'type'                  => $request->type,
+                            'certificate_type_id'   => $request->type,
                             'name'                  => $request->name,
                             'start_date'            => $request->start_date,
                             'end_date'              => $request->end_date,
                             'employee_name'         => $request->employee,
                             'file'                  => $picture,
+                            'hospital_id'           => $request->hospital
                         ]);
 
                         DB::commit();
@@ -367,6 +379,48 @@ class CertificateController extends Controller
                     'status'  => 500,
                     'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
                 ], 500);
+            }
+        } else {
+            abort(403);
+        }
+    }
+
+    public function notif($id)
+    {
+        $user = auth()->user();
+
+        if ($user->can('update certificate')) {
+            $crypt = Crypt::decryptString($id);
+            $data = Certificate::find($crypt);
+
+            if ($data) {
+                DB::beginTransaction();
+
+                $notif = request('notif');
+
+                try {
+                    $data->update([
+                        'isNotif'    => $notif,
+                    ]);
+
+                    DB::commit();
+
+                    return response()->json([
+                        'status'  => 200,
+                        'message' => 'Notification certificate has been updated',
+                    ], 200);
+                } catch (\Throwable $th) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'  => 500,
+                        'message' => $th->getMessage(),
+                    ], 500);
+                }
+            } else {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Data not found..!',
+                ]);
             }
         } else {
             abort(403);

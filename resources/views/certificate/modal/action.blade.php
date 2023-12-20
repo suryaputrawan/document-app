@@ -73,13 +73,30 @@
                     <div class="row">
                         <div class="col-sm-6">
                             <div class="mb-3">
+                                <div class="form-group">
+                                    <label class="form-label">Hospital / Clinic <span class="text-danger">*</span></label>
+                                    <select name="hospital" id="hospital" class="form-select" data-width="100%">
+                                        <option value="">Select Hospital / Clinic</option>
+                                        @foreach ($hospital as $item)
+                                        <option value="{{ $item->id }}"
+                                            {{ old('hospital') == $item->id ? 'selected' : null }}>{{ $item->name }}
+                                        </option>
+                                        @endforeach
+                                    </select>
+                                    <p id="error-hospital" style="color: red" class="error"></p>
+                                </div>
+                            </div> 
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="mb-3">
                                 <label class="form-label">Upload Cerfiticate File <span class="text-danger">*</span></label>
                                 <input name="file" id="file" type="file" class="form-control" accept="image/*,.pdf" onchange="previewImages()">
                                 <p id="error-file" style="color: red" class="error"></p>
                                 <code class="text-danger" style="font-size: 8pt">File Max: 1Mb. Format: jpg, jpeg, png, pdf</code>
                             </div>
+                            <div id="preview"></div>
                         </div>
-                        <div id="preview"></div>
+                        
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary" type="submit">

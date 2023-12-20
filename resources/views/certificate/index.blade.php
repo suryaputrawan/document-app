@@ -49,6 +49,7 @@
                                 <th>START DATE</th>
                                 <th>END DATE</th>
                                 <th>TYPE</th>
+                                <th>NOTIF</th>
                             </tr>
                         </thead>
                         <tbody class="align-middle">
@@ -68,11 +69,15 @@
   <script src="{{ asset('assets/admin/plugins/datatables-net/jquery.dataTables.js') }}"></script>
   <script src="{{ asset('assets/admin/plugins/datatables-net-bs4/dataTables.bootstrap4.js') }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.12.0/dist/pdf-lib.js"></script>
 @endpush
 
 @push('custom-scripts')
 <script type="text/javascript">
     $('#type').select2({
+        dropdownParent: $('#modal-create-certificate')
+    });
+    $('#hospital').select2({
         dropdownParent: $('#modal-create-certificate')
     });
 
@@ -84,23 +89,46 @@
     
         function readAndPreview(file) {
             if (/\.(jpe?g|png|gif)$/i.test(file.name)) {
-                var reader = new FileReader();
-                reader.addEventListener('load', function() {
-                    var image = new Image();
-                    image.height = 150;
-                    image.title = file.name;
-                    image.src = this.result;
-                    preview.appendChild(image);
-                }, false);
-    
-                reader.readAsDataURL(file);
+                readImage(file);
+            } else if (/\.pdf$/i.test(file.name)) {
+                readPdf(file);
             }
+        }
+
+        function readImage(file) {
+            var reader = new FileReader();
+            reader.addEventListener('load', function () {
+                var image = new Image();
+                image.height = 150;
+                image.title = file.name;
+                image.src = this.result;
+                preview.appendChild(image);
+            }, false);
+
+            reader.readAsDataURL(file);
+        }
+
+        function readPdf(file) {
+            var reader = new FileReader();
+            reader.addEventListener('load', function () {
+                var image = new Image();
+                image.height = 150;
+                image.title = file.name;
+                image.src = '/assets/admin/images/pdf_icon.png';
+                preview.appendChild(image);
+            }, false);
+
+            reader.readAsDataURL(file);
         }
     
         if (files) {
             [].forEach.call(files, readAndPreview);
         }
     };
+
+    function getFileExtension(url) {
+        return url.split('.').pop().toLowerCase();
+    }
 
     $(document).ready(function(){
         let dataTable = $("#datatable").DataTable({
@@ -122,11 +150,12 @@
                 @canany(['update certificate', 'view certificate', 'delete certificate'])
                 { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
                 @endcanany
-                { data: "name", name: "name", orderable: true  },
-                { data: "certificate_number", name: "certificate_number", orderable: true  },
+                { data: "name", name: "name", orderable: false, searchable:false  },
+                { data: "certificate_number", name: "certificate_number", orderable: true, searchable:true  },
                 { data: "start_date", name: "start_date", orderable: false, searchable: false, className: "text-center", },
                 { data: "end_date", name: "end_date", orderable: false, searchable: false, className: "text-center", },
-                { data: "type", name: "type", orderable: true, className: "text-center", },
+                { data: "type", name: "type", orderable: false, className: "text-center", },
+                { data: "notif", name: "notif", orderable: false, searchable: false, className: "text-center", },
             ],
             drawCallback: function( settings ) {
                 feather.replace()
@@ -139,6 +168,7 @@
             $('#certificate-form').find('.error').text("");
 
             $("#type").val("").trigger('change');
+            $("#hospital").val("").trigger('change');
             var preview = document.querySelector('#preview');
             preview.innerHTML = '';
 
@@ -230,6 +260,9 @@
                         $.each(response.errors.employee, function(key, error) {
                             $('#error-employee').append(error);
                         });
+                        $.each(response.errors.hospital, function(key, error) {
+                            $('#error-hospital').append(error);
+                        });
                         $.each(response.errors.file, function(key, error) {
                             $('#error-file').append(error);
                         });
@@ -295,11 +328,19 @@
 
                         $('#certificate-number').val(response.data.certificate_number);
                         $('#type').val(response.data.certificate_type_id).trigger('change');
+                        $('#hospital').val(response.data.hospital_id).trigger('change');
                         $('#name').val(response.data.name);
                         $('#start-date').val(response.data.start_date);
                         $('#end-date').val(response.data.end_date);
                         $('#employee').val(response.data.employee_name);
-                        $('#preview').eq(0).html('<img src="/storage/'+response.data.file+'"height="150" alt="Preview File">');
+
+                        var fileExtension = getFileExtension(response.data.file);
+
+                        if (fileExtension === 'pdf') {
+                            $('#preview').eq(0).html('<img src="/assets/admin/images/pdf_icon.png" height="150" alt="PDF File">');
+                        } else {
+                            $('#preview').eq(0).html('<img src="/storage/'+response.data.file+'" height="150" alt="Preview File">');
+                        }
                     }
                 },
                 error: function(response){
@@ -361,6 +402,7 @@
                         $('#certificate-number-view').text(response.data.certificate_number);
                         $('#certificate-name').text(response.data.name);
                         $('#certificate-type').text(response.data.certificate_type.name);
+                        $('#certificate-hospital').text(response.data.hospital.name);
                         $('#certificate-start-date').text(startDate);
                         $('#certificate-end-date').text(endDate);
                         $('#certificate-employee').text(response.data.employee_name);
@@ -376,6 +418,54 @@
             });
         });
         //------ End View Detail
+
+        //----Checkbox change
+        $('#datatable tbody').on('change', '.checkbox', function(e) {
+            e.preventDefault();
+
+            var url = $(this).data('url');
+            // var id = $(this).data('id');
+            var data = dataTable.row($(this).closest('tr')).data();
+            var status = this.checked;
+
+            if (status == true) {
+                var notif = 1;
+            } else {
+                var notif = 0;
+            }
+
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                type   : "POST",
+                url    : url,
+                data   : {notif : notif},
+                success: function(response) {    
+
+                    if (response.status == 200) {
+                        // $('#datatable').DataTable().ajax.reload();
+                        Toast.fire({
+                            icon: 'success',
+                            title: response.message,
+                        });
+                        
+                        location.reload();
+                    } else {
+                        Toast.fire({
+                            icon: 'warning',
+                            title: response.message,
+                        });
+                    }
+                },
+                error: function(response){
+                    Toast.fire({
+                        icon: 'error',
+                        title: response.responseJSON.message ?? 'Oops,.. Something went wrong!',
+                    });
+                }
+            });
+        });
     });
 
     //---Toast for session success

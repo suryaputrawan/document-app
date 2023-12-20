@@ -11,6 +11,7 @@ use App\Http\Controllers\Permissions\RoleController;
 use App\Http\Controllers\Permissions\UserController;
 use App\Http\Controllers\Permissions\AssignController;
 use App\Http\Controllers\Admin\DocumentTemplateController;
+use App\Http\Controllers\Admin\HospitalController;
 use App\Http\Controllers\Permissions\PermissionController;
 
 Route::get('/', function () {
@@ -26,6 +27,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::resource('karyawan', KaryawanController::class);
             Route::resource('document-template', DocumentTemplateController::class);
             Route::resource('certificate-types', CertificateTypeController::class);
+            Route::resource('hospitals', HospitalController::class);
         });
 
         Route::group(['prefix' => 'profile'], function () {

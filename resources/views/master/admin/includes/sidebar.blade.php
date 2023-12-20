@@ -57,6 +57,12 @@
                         <span class="link-title">Certificate Types</span>
                     </a>
                 </li>
+                <li class="nav-item {{ active_class(['admin/master/hospitals', 'admin/master/hospitals/*']) }}">
+                    <a href="{{ route('admin.hospitals.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="home"></i>
+                        <span class="link-title">Hospital / Clinic</span>
+                    </a>
+                </li>
             @endcan
             
             @can('assign permission')

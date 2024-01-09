@@ -17,10 +17,10 @@
         <div class="card">
             <div class="card-header flex flex-align-center">
                 <h6 class="card-title flex-full-width mb-0">Assign Permissions</h6>
-                <a href="{{ route('admin.assign.create') }}" type="button" class="btn btn-sm btn-primary btn-icon-text">
+                {{-- <a href="{{ route('admin.assign.create') }}" type="button" class="btn btn-sm btn-primary btn-icon-text">
                     <i class="btn-icon-prepend" data-feather="plus"></i>
                     Tambah
-                </a>
+                </a> --}}
             </div>
             <div class="card-body">
                 <div class="table-responsive">

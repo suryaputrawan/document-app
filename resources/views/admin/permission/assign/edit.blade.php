@@ -54,17 +54,41 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="mb-3">
-                                <label class="form-label">Permissions <span class="text-danger">*</span></label>
-                                <select name="permissions[]" class="js-example-basic-multiple form-select @error('permissions') is-invalid @enderror" data-width="100%" multiple="multiple">
-                                    @foreach ($permissions as $item)
-                                        <option {{ $data->permissions()->find($item->id) ? "selected" : "" }} value="{{ $item->id }}">{{ $item->name }}</option>
-                                    @endforeach
-                                </select>
+                    <div class="row form-row">
+                        <div class="col-12 col-sm-12">
+                            <div class="form-group">
+                                <label> Permissions <span class="text-danger">*</span></label>
+                                <?php $lastGroup = ''; ?>
+                                <table class="table table-stripped" width="100%" cellspacing="0">
+                                    <tbody>
+                                        <tr>
+                                            <td><h6 class="text-danger">Super Admin Permissions</h6></td>
+                                            <td>
+                                                <input type="checkbox" id="checkAll">
+                                                <label for="super admin permissions">All Permissions</label><br>
+                                            </td>
+                                        </tr>
+                                        @foreach ($permissions as $permission)
+                                            <?php $words = explode(" ", $permission->name); ?>
+                                            <?php $group = implode(' ', array_slice($words, 1));; ?>
+                                            @if ($lastGroup !== $group)
+                                                @if ($lastGroup !== '')
+                                                    </tr>
+                                                @endif
+                                                <tr>
+                                                    <td><h6 style="text-transform:capitalize">{{ $group }}</h6></td>
+                                                <?php $lastGroup = $group; ?>
+                                            @endif
+                                            <td>
+                                                <input type="checkbox" name="permissions[]" value="{{ $permission->name }}" {{ $data->permissions()->find($permission->id) ? "checked" : "" }}>
+                                                <label for="{{ $permission->name }}" style="text-transform: capitalize">{{ array_shift($words) }}</label><br>
+                                            </td>
+                                        @endforeach
+                                    </tbody> 
+                                </table>
+                                
                                 @error('permissions')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                    <span class="text-danger" style="margin-top: .25rem; font-size: 80%;">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>

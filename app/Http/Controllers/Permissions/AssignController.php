@@ -134,7 +134,7 @@ class AssignController extends Controller
         try {
             $request->validate([
                 'role'          => 'required',
-                'permissions'   => 'array|required'
+                'permissions'   => 'array'
             ]);
 
             $data->syncPermissions(request('permissions'));

@@ -35,7 +35,7 @@
                 <form action="{{ route('admin.assign.user.create') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="row">
-                        <div class="col-sm-6">
+                        <div class="col-sm-12">
                             <div class="mb-3">
                                 <label class="form-label">User <span class="text-danger">*</span></label>
                                 <select name="user" class="js-example-basic-single form-select @error('user') is-invalid @enderror" data-width="100%">
@@ -51,20 +51,21 @@
                                 @enderror
                             </div>
                         </div>
-
-                        <div class="col-sm-6">
-                            <div class="mb-3">
-                                <label class="form-label">Role <span class="text-danger">*</span></label>
-                                <select name="role" class="js-example-basic-single form-select @error('role') is-invalid @enderror" data-width="100%">
-                                    <option selected disabled>-- Select Role --</option>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-md-12 col-sm-12">
+                            <div class="form-group">
+                                <label> Roles <span class="text-danger">*</span></label>
+                                <div class="checkbox">
                                     @foreach ($roles as $item)
-                                    <option value="{{ $item->id }}"
-                                        {{ old('role') == $item->id ? 'selected' : null }}>{{ $item->name }}
-                                    </option>
+                                    <label class="p-2 mb-3">
+                                        <input type="checkbox" class="@error('roles') is-invalid @enderror" name="roles[]" 
+                                            value="{{ $item->id }}"> {{ $item->name }}
+                                    </label>
                                     @endforeach
-                                </select>
-                                @error('role')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                </div>
+                                @error('roles')
+                                    <span class="text-danger" style="margin-top: .25rem; font-size: 80%;">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>

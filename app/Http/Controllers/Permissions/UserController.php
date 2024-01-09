@@ -62,14 +62,15 @@ class UserController extends Controller
     {
         $request->validate([
             'user'   => 'required',
-            'role'   => 'required'
+            'roles'  => 'array|required'
         ]);
 
         try {
             DB::beginTransaction();
 
             $user = User::find($request->user);
-            $user->assignRole($request->role);
+
+            $user->assignRole(request('roles'));
 
             DB::commit();
 
@@ -97,14 +98,6 @@ class UserController extends Controller
 
     public function edit($id)
     {
-        return view('admin.permission.assign.user.edit', [
-            'breadcrumb'    => 'Permissions To User',
-            'btnSubmit'     => 'Sync',
-            'data'          => User::find($id),
-            'roles'         => Role::get(),
-            'users'         => User::get(['id', 'name', 'username'])
-        ]);
-
         try {
             $id = Crypt::decryptString($id);
             $data = User::find($id);
@@ -144,10 +137,10 @@ class UserController extends Controller
         try {
             $request->validate([
                 'user'   => 'required',
-                'role'   => 'required'
+                'roles'   => 'array'
             ]);
 
-            $data->syncRoles($request->role);
+            $data->syncRoles(request('roles'));
 
             DB::commit();
 

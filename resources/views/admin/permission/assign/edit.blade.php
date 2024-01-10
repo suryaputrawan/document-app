@@ -147,5 +147,26 @@
         $('#btnCancel').toggle();
     });
     //end
+	
+	$(document).ready(function(){
+        // Fungsi untuk mengecek apakah semua checkbox tercentang
+        function checkAllChecked() {
+            var allChecked = $('input:checkbox').not("#checkAll").length === $('input:checkbox:checked').not("#checkAll").length;
+            $("#checkAll").prop('checked', allChecked);
+        }
+
+        $("#checkAll").click(function(){
+            $('input:checkbox').not(this).prop('checked', this.checked);
+            checkAllChecked();
+        });
+
+        // Tambahkan event handler untuk setiap checkbox individual
+        $('input:checkbox').not("#checkAll").click(function(){
+            checkAllChecked();
+        });
+        
+        // Pengecekan saat membuka form edit
+        checkAllChecked();
+    });
 </script>
 @endpush

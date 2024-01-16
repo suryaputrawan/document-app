@@ -554,7 +554,7 @@ class DocumentController extends Controller
                     $id = Crypt::decryptString($id);
 
                     $document = Document::find($id);
-                    $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
+                    $diajukanOleh = User::where('karyawan_id', $document->created_by)
                         ->first(['id', 'name', 'email']);
                     $karyawan = Karyawan::where('id', $user)->first();
 

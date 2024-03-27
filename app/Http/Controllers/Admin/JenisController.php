@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
 
@@ -18,46 +19,51 @@ class JenisController extends Controller
      */
     public function index()
     {
-        if (request()->type == 'datatable') {
-            $data = Jenis::latest()->get(['id', 'nama']);
+        $user = auth()->user();
 
-            return datatables()->of($data)
-                ->addColumn('action', function ($data) {
-                    $user            = auth()->user();
-                    $editRoute       = 'admin.jenis.edit';
-                    $deleteRoute     = 'admin.jenis.destroy';
-                    $dataId          = Crypt::encryptString($data->id);
-                    $dataDeleteLabel = $data->nama;
+        if ($user->can('create jenis')) {
+            if (request()->type == 'datatable') {
+                $data = Jenis::latest()->get(['id', 'nama']);
 
-                    $action = "";
+                return datatables()->of($data)
+                    ->addColumn('action', function ($data) use ($user) {
+                        $editRoute       = 'admin.jenis.edit';
+                        $deleteRoute     = 'admin.jenis.destroy';
+                        $dataId          = Crypt::encryptString($data->id);
+                        $dataDeleteLabel = $data->nama;
 
-                    if ($user->can('update jenis')) {
-                        $action .= '
-                        <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
-                            <i data-feather="edit"></i>
-                        </a> ';
-                    }
+                        $action = "";
 
-                    if ($user->can('delete jenis')) {
-                        $action .= '
-                        <button class="btn btn-danger btn-icon delete-item" 
-                            data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
-                            <i data-feather="trash"></i>
-                        </button> ';
-                    }
+                        if ($user->can('update jenis')) {
+                            $action .= '
+                            <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
+                                <i data-feather="edit"></i>
+                            </a> ';
+                        }
 
-                    $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
-                        ' . $action . '
-                    </div>';
-                    return $group;
-                })
-                ->rawColumns(['action'])
-                ->make(true);
+                        if ($user->can('delete jenis')) {
+                            $action .= '
+                            <button class="btn btn-danger btn-icon delete-item" 
+                                data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
+                                <i data-feather="trash"></i>
+                            </button> ';
+                        }
+
+                        $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
+                            ' . $action . '
+                        </div>';
+                        return $group;
+                    })
+                    ->rawColumns(['action'])
+                    ->make(true);
+            }
+
+            return view('admin.modules.jenis.index', [
+                'breadcrumb' => 'Jenis Dokument'
+            ]);
+        } else {
+            return View::make('error.403');
         }
-
-        return view('admin.modules.jenis.index', [
-            'breadcrumb' => 'Jenis Dokument'
-        ]);
     }
 
     /**
@@ -65,7 +71,7 @@ class JenisController extends Controller
      */
     public function create()
     {
-        //
+        return View::make('error.403');
     }
 
     /**
@@ -73,35 +79,44 @@ class JenisController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make([
-            'nama' => $request->nama
-        ], [
-            'nama' => 'required|max:100|min:5|unique:jenis,nama',
-        ]);
+        $user = auth()->user();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'errors' => $validator->messages(),
+        if ($user->can('create jenis')) {
+            $validator = Validator::make([
+                'nama' => $request->nama
+            ], [
+                'nama' => 'required|max:100|min:5|unique:jenis,nama',
             ]);
-        } else {
-            DB::beginTransaction();
-            try {
-                Jenis::create([
-                    'nama' => Str::upper($request->nama)
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 400,
+                    'errors' => $validator->messages(),
                 ]);
-                DB::commit();
-                return response()->json([
-                    'status'  => 200,
-                    'message' => 'Jenis document has been success to created',
-                ], 200);
-            } catch (Throwable $th) {
-                DB::rollBack();
-                return response()->json([
-                    'status'  => 500,
-                    'message' => $th->getMessage(),
-                ], 500);
+            } else {
+                DB::beginTransaction();
+                try {
+                    Jenis::create([
+                        'nama' => Str::upper($request->nama)
+                    ]);
+                    DB::commit();
+                    return response()->json([
+                        'status'  => 200,
+                        'message' => 'Jenis document has been success to created',
+                    ], 200);
+                } catch (Throwable $th) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'  => 500,
+                        'message' => $th->getMessage(),
+                    ], 500);
+                }
             }
+        } else {
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -110,7 +125,7 @@ class JenisController extends Controller
      */
     public function show(Jenis $jenis)
     {
-        //
+        return View::make('error.403');
     }
 
     /**
@@ -118,25 +133,34 @@ class JenisController extends Controller
      */
     public function edit($id)
     {
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Jenis::find($id);
+        $user = auth()->user();
 
-            if ($data) {
+        if ($user->can('update jenis')) {
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Jenis::find($id);
+
+                if ($data) {
+                    return response()->json([
+                        'status' => 200,
+                        'data' => $data,
+                    ]);
+                } else {
+                    return response()->json([
+                        'status' => 404,
+                        'message' => 'Jenis Document Not Found',
+                    ]);
+                }
+            } catch (\Throwable $e) {
                 return response()->json([
-                    'status' => 200,
-                    'data' => $data,
-                ]);
-            } else {
-                return response()->json([
-                    'status' => 404,
-                    'message' => 'Jenis Document Not Found',
-                ]);
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }
@@ -146,44 +170,53 @@ class JenisController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $data = Jenis::find($id);
+        $user = auth()->user();
 
-        $validator = Validator::make([
-            'nama' => $request->nama
-        ], [
-            'nama' => 'required|max:100|min:5|unique:jenis,nama,' . $data->id,
-        ]);
+        if ($user->can('update jenis')) {
+            $data = Jenis::find($id);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'errors' => $validator->messages(),
+            $validator = Validator::make([
+                'nama' => $request->nama
+            ], [
+                'nama' => 'required|max:100|min:5|unique:jenis,nama,' . $data->id,
             ]);
-        } else {
-            if ($data) {
-                DB::beginTransaction();
-                try {
-                    $data->update([
-                        'nama' => Str::upper($request->nama)
-                    ]);
-                    DB::commit();
-                    return response()->json([
-                        'status'  => 200,
-                        'message' => 'Jenis document has been updated',
-                    ], 200);
-                } catch (\Throwable $th) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status'  => 500,
-                        'message' => $th->getMessage(),
-                    ], 500);
-                }
-            } else {
+
+            if ($validator->fails()) {
                 return response()->json([
-                    'status' => 404,
-                    'message' => 'Data not found..!',
+                    'status' => 400,
+                    'errors' => $validator->messages(),
                 ]);
+            } else {
+                if ($data) {
+                    DB::beginTransaction();
+                    try {
+                        $data->update([
+                            'nama' => Str::upper($request->nama)
+                        ]);
+                        DB::commit();
+                        return response()->json([
+                            'status'  => 200,
+                            'message' => 'Jenis document has been updated',
+                        ], 200);
+                    } catch (\Throwable $th) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status'  => 500,
+                            'message' => $th->getMessage(),
+                        ], 500);
+                    }
+                } else {
+                    return response()->json([
+                        'status' => 404,
+                        'message' => 'Data not found..!',
+                    ]);
+                }
             }
+        } else {
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -192,27 +225,36 @@ class JenisController extends Controller
      */
     public function destroy($id)
     {
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Jenis::find($id);
+        $user = auth()->user();
 
-            if (!$data) {
+        if ($user->can('delete jenis')) {
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Jenis::find($id);
+
+                if (!$data) {
+                    return response()->json([
+                        'status'  => 404,
+                        'message' => "Data not found!",
+                    ], 404);
+                }
+
+                $data->delete();
+
                 return response()->json([
-                    'status'  => 404,
-                    'message' => "Data not found!",
-                ], 404);
+                    'status'  => 200,
+                    'message' => "Jenis document has been deleted",
+                ], 200);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-
-            $data->delete();
-
-            return response()->json([
-                'status'  => 200,
-                'message' => "Jenis document has been deleted",
-            ], 200);
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }

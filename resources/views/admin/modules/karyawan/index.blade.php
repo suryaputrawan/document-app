@@ -103,7 +103,9 @@
                         <thead>
                             <tr>
                                 <th style="width: 20px">NO</th>
-                                <th style="width: 100px">ACTION</th>
+                                @canany(['update karyawan', 'delete karyawan'])
+                                    <th style="width: 100px">ACTION</th>  
+                                @endcanany
                                 <th>NAMA KARYAWAN</th>
                                 <th>NIP</th>
                                 <th>JABATAN</th>
@@ -174,7 +176,9 @@
                     orderable: false, searchable: false,
                     className: "text-center",
                 },
-                { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @canany(['update karyawan', 'delete karyawan'])
+                    { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @endcanany
                 { data: "nama", name: "nama", orderable: true  },
                 { data: "nip", name: "nip", orderable: true  },
                 { data: "jabatan", name: "jabatan", orderable: false, searchable:false  },

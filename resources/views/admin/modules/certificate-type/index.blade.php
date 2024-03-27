@@ -66,7 +66,9 @@
                         <thead>
                             <tr>
                                 <th style="width: 20px">NO</th>
-                                <th style="width: 100px">ACTION</th>
+                                @canany(['update certificate type', 'delete certificate type'])
+                                    <th style="width: 100px">ACTION</th>   
+                                @endcanany
                                 <th>CERTIFICATE TYPE</th>
                             </tr>
                         </thead>
@@ -107,7 +109,9 @@
                     orderable: false, searchable: false,
                     className: "text-center",
                 },
-                { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @canany(['update certificate type', 'delete certificate type'])
+                    { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @endcanany
                 { data: "name", name: "name", orderable: true  },
             ],
             drawCallback: function( settings ) {

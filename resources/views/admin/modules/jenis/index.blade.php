@@ -66,7 +66,9 @@
                         <thead>
                             <tr>
                                 <th style="width: 20px">NO</th>
-                                <th style="width: 100px">ACTION</th>
+                                @canany(['update jenis', 'delete jenis'])
+                                    <th style="width: 100px">ACTION</th> 
+                                @endcanany
                                 <th>JENIS DOKUMENT</th>
                             </tr>
                         </thead>
@@ -107,7 +109,9 @@
                     orderable: false, searchable: false,
                     className: "text-center",
                 },
-                { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @canany(['update jenis', 'delete jenis'])
+                    { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @endcanany
                 { data: "nama", name: "nama", orderable: true  },
             ],
             drawCallback: function( settings ) {

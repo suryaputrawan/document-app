@@ -30,7 +30,9 @@
                         <thead>
                             <tr>
                                 <th style="width: 20px">NO</th>
-                                <th style="width: 100px">ACTION</th>
+                                @canany(['update template', 'delete template'])
+                                    <th style="width: 100px">ACTION</th> 
+                                @endcanany
                                 <th>JENIS DOCUMENT</th>
                                 <th>TEMPLATE</th>
                             </tr>
@@ -70,7 +72,9 @@
                     orderable: false, searchable: false,
                     className: "text-center",
                 },
-                { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @canany(['update template', 'delete template'])
+                    { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @endcanany
                 { data: "jenis", name: "jenis", orderable: true  },
                 { data: "template", name: "template", orderable: true  },
             ],

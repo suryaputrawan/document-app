@@ -8,6 +8,7 @@ use App\Models\Karyawan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -19,49 +20,54 @@ class KaryawanController extends Controller
      */
     public function index()
     {
-        if (request()->type == 'datatable') {
-            $data = Karyawan::orderBy('nama', 'ASC')->get();
+        $user = auth()->user();
 
-            return datatables()->of($data)
-                ->addColumn('action', function ($data) {
-                    $user            = auth()->user();
-                    $editRoute       = 'admin.karyawan.edit';
-                    $deleteRoute     = 'admin.karyawan.destroy';
-                    $dataId          = Crypt::encryptString($data->id);
-                    $dataDeleteLabel = $data->nama;
+        if ($user->can('create karyawan')) {
+            if (request()->type == 'datatable') {
+                $data = Karyawan::orderBy('nama', 'ASC')->get();
 
-                    $action = "";
+                return datatables()->of($data)
+                    ->addColumn('action', function ($data) use ($user) {
+                        $editRoute       = 'admin.karyawan.edit';
+                        $deleteRoute     = 'admin.karyawan.destroy';
+                        $dataId          = Crypt::encryptString($data->id);
+                        $dataDeleteLabel = $data->nama;
 
-                    if ($user->can('update karyawan')) {
-                        $action .= '
-                        <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
-                            <i data-feather="edit"></i>
-                        </a> ';
-                    }
+                        $action = "";
 
-                    if ($user->can('delete karyawan')) {
-                        $action .= '
-                        <button class="btn btn-danger btn-icon delete-item" 
-                            data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
-                            <i data-feather="trash"></i>
-                        </button> ';
-                    }
+                        if ($user->can('update karyawan')) {
+                            $action .= '
+                            <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
+                                <i data-feather="edit"></i>
+                            </a> ';
+                        }
 
-                    $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
-                        ' . $action . '
-                    </div>';
-                    return $group;
-                })
-                ->addColumn('gambar', function ($data) {
-                    return $data->ttd_picture ? '<img src="' . $data->takeImage . '" alt="Gambar" width="50">' : '';
-                })
-                ->rawColumns(['action', 'gambar'])
-                ->make(true);
+                        if ($user->can('delete karyawan')) {
+                            $action .= '
+                            <button class="btn btn-danger btn-icon delete-item" 
+                                data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
+                                <i data-feather="trash"></i>
+                            </button> ';
+                        }
+
+                        $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
+                            ' . $action . '
+                        </div>';
+                        return $group;
+                    })
+                    ->addColumn('gambar', function ($data) {
+                        return $data->ttd_picture ? '<img src="' . $data->takeImage . '" alt="Gambar" width="50">' : '';
+                    })
+                    ->rawColumns(['action', 'gambar'])
+                    ->make(true);
+            }
+
+            return view('admin.modules.karyawan.index', [
+                'breadcrumb' => 'Karyawan'
+            ]);
+        } else {
+            return View::make('error.403');
         }
-
-        return view('admin.modules.karyawan.index', [
-            'breadcrumb' => 'Karyawan'
-        ]);
     }
 
     /**
@@ -69,7 +75,7 @@ class KaryawanController extends Controller
      */
     public function create()
     {
-        //
+        return View::make('error.403');
     }
 
     /**
@@ -77,53 +83,62 @@ class KaryawanController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make([
-            'nama'      => $request->nama,
-            'nip'       => $request->nip,
-            'jabatan'   => $request->jabatan,
-            'email'     => $request->email,
-            'gambar'    => $request->gambar
-        ], [
-            'nama'      => 'required|max:100|min:3|unique:karyawan,nama,NULL,id',
-            'email'     => 'required|unique:users,email',
-            'gambar'    =>  request('gambar') ? 'mimes:jpg,jpeg,png|max:1000' : '',
-            'jabatan'   => 'required|min:5',
-            'nip'       => 'required|min:10|unique:karyawan,nip'
-        ]);
+        $user = auth()->user();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'errors' => $validator->messages(),
+        if ($user->can('create karyawan')) {
+            $validator = Validator::make([
+                'nama'      => $request->nama,
+                'nip'       => $request->nip,
+                'jabatan'   => $request->jabatan,
+                'email'     => $request->email,
+                'gambar'    => $request->gambar
+            ], [
+                'nama'      => 'required|max:100|min:3|unique:karyawan,nama,NULL,id',
+                'email'     => 'required|unique:users,email',
+                'gambar'    =>  request('gambar') ? 'mimes:jpg,jpeg,png|max:1000' : '',
+                'jabatan'   => 'required|min:5',
+                'nip'       => 'required|min:10|unique:karyawan,nip'
             ]);
-        } else {
-            DB::beginTransaction();
-            try {
-                $karyawan = Karyawan::create([
-                    'nama'          => $request->nama,
-                    'nip'           => $request->nip,
-                    'jabatan'       => $request->jabatan,
-                    'ttd_picture'   => request('gambar') ? $request->file('gambar')->store('ttd') : null
-                ]);
-                User::create([
-                    'name'          => $request->nama,
-                    'username'      => $request->nip,
-                    'email'         => $request->email,
-                    'password'      => bcrypt($request->nip),
-                    'karyawan_id'   => $karyawan->id,
-                ]);
-                DB::commit();
+
+            if ($validator->fails()) {
                 return response()->json([
-                    'status'  => 200,
-                    'message' => 'Karyawan berhasil ditambahkan',
-                ], 200);
-            } catch (Throwable $th) {
-                DB::rollBack();
-                return response()->json([
-                    'status'  => 500,
-                    'message' => $th->getMessage(),
-                ], 500);
+                    'status' => 400,
+                    'errors' => $validator->messages(),
+                ]);
+            } else {
+                DB::beginTransaction();
+                try {
+                    $karyawan = Karyawan::create([
+                        'nama'          => $request->nama,
+                        'nip'           => $request->nip,
+                        'jabatan'       => $request->jabatan,
+                        'ttd_picture'   => request('gambar') ? $request->file('gambar')->store('ttd') : null
+                    ]);
+                    User::create([
+                        'name'          => $request->nama,
+                        'username'      => $request->nip,
+                        'email'         => $request->email,
+                        'password'      => bcrypt($request->nip),
+                        'karyawan_id'   => $karyawan->id,
+                    ]);
+                    DB::commit();
+                    return response()->json([
+                        'status'  => 200,
+                        'message' => 'Karyawan berhasil ditambahkan',
+                    ], 200);
+                } catch (Throwable $th) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'  => 500,
+                        'message' => $th->getMessage(),
+                    ], 500);
+                }
             }
+        } else {
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -132,7 +147,7 @@ class KaryawanController extends Controller
      */
     public function show(Karyawan $karyawan)
     {
-        //
+        return View::make('error.403');
     }
 
     /**
@@ -140,25 +155,34 @@ class KaryawanController extends Controller
      */
     public function edit($id)
     {
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Karyawan::with('user')->find($id);
+        $user = auth()->user();
 
-            if ($data) {
+        if ($user->can('update karyawan')) {
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Karyawan::with('user')->find($id);
+
+                if ($data) {
+                    return response()->json([
+                        'status' => 200,
+                        'data' => $data,
+                    ]);
+                } else {
+                    return response()->json([
+                        'status' => 404,
+                        'message' => 'Karyawan Not Found',
+                    ]);
+                }
+            } catch (\Throwable $e) {
                 return response()->json([
-                    'status' => 200,
-                    'data' => $data,
-                ]);
-            } else {
-                return response()->json([
-                    'status' => 404,
-                    'message' => 'Karyawan Not Found',
-                ]);
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }
@@ -168,82 +192,91 @@ class KaryawanController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $data = Karyawan::with([
-            'user'  => function ($query) {
-                return $query->select('id', 'email', 'karyawan_id');
-            }
-        ])->find($id);
+        $user = auth()->user();
 
-        $user = User::where('karyawan_id', $data->id)
-            ->first(['id', 'name', 'email', 'karyawan_id']);
+        if ($user->can('update karyawan')) {
+            $data = Karyawan::with([
+                'user'  => function ($query) {
+                    return $query->select('id', 'email', 'karyawan_id');
+                }
+            ])->find($id);
 
-        $validator = Validator::make([
-            'nama'      => $request->nama,
-            'nip'       => $request->nip,
-            'jabatan'   => $request->jabatan,
-            'email'     => $request->email,
-            'gambar'    => $request->gambar
-        ], [
-            'nama'      => 'required|max:100|min:3|unique:karyawan,nama,' . $data->id,
-            'email'     => 'required|unique:users,email,' . $data->user->id,
-            'gambar'    => request('gambar') ? 'mimes:jpg,jpeg,png|max:1000' : '',
-            'jabatan'   => 'required|min:5',
-            'nip'       => 'required|min:10|unique:karyawan,nip,' . $data->id
-        ]);
+            $user = User::where('karyawan_id', $data->id)
+                ->first(['id', 'name', 'email', 'karyawan_id']);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'errors' => $validator->messages(),
+            $validator = Validator::make([
+                'nama'      => $request->nama,
+                'nip'       => $request->nip,
+                'jabatan'   => $request->jabatan,
+                'email'     => $request->email,
+                'gambar'    => $request->gambar
+            ], [
+                'nama'      => 'required|max:100|min:3|unique:karyawan,nama,' . $data->id,
+                'email'     => 'required|unique:users,email,' . $data->user->id,
+                'gambar'    => request('gambar') ? 'mimes:jpg,jpeg,png|max:1000' : '',
+                'jabatan'   => 'required|min:5',
+                'nip'       => 'required|min:10|unique:karyawan,nip,' . $data->id
             ]);
-        } else {
-            if ($data) {
-                DB::beginTransaction();
 
-                //Membuat kondisi langsung mendelete gambar yang lama pada storage
-                if (request('gambar')) {
-                    if ($data->ttd_picture) {
-                        Storage::delete($data->ttd_picture);
-                    }
-                    $picture = request()->file('gambar')->store('ttd');
-                } elseif ($data->ttd_picture) {
-                    $picture = $data->ttd_picture;
-                } else {
-                    $picture = null;
-                }
-
-                try {
-                    $data->update([
-                        'nama'          => $request->nama,
-                        'nip'           => $request->nip,
-                        'jabatan'       => $request->jabatan,
-                        'ttd_picture'   => $picture,
-                    ]);
-
-                    $user->update([
-                        'name'      => $request->nama,
-                        'username'  => $request->nip,
-                        'email'     => $request->email
-                    ]);
-                    DB::commit();
-
-                    return response()->json([
-                        'status'  => 200,
-                        'message' => 'Karyawan has been updated',
-                    ], 200);
-                } catch (\Throwable $th) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status'  => 500,
-                        'message' => $th->getMessage(),
-                    ], 500);
-                }
-            } else {
+            if ($validator->fails()) {
                 return response()->json([
-                    'status' => 404,
-                    'message' => 'Data not found..!',
+                    'status' => 400,
+                    'errors' => $validator->messages(),
                 ]);
+            } else {
+                if ($data) {
+                    DB::beginTransaction();
+
+                    //Membuat kondisi langsung mendelete gambar yang lama pada storage
+                    if (request('gambar')) {
+                        if ($data->ttd_picture) {
+                            Storage::delete($data->ttd_picture);
+                        }
+                        $picture = request()->file('gambar')->store('ttd');
+                    } elseif ($data->ttd_picture) {
+                        $picture = $data->ttd_picture;
+                    } else {
+                        $picture = null;
+                    }
+
+                    try {
+                        $data->update([
+                            'nama'          => $request->nama,
+                            'nip'           => $request->nip,
+                            'jabatan'       => $request->jabatan,
+                            'ttd_picture'   => $picture,
+                        ]);
+
+                        $user->update([
+                            'name'      => $request->nama,
+                            'username'  => $request->nip,
+                            'email'     => $request->email
+                        ]);
+                        DB::commit();
+
+                        return response()->json([
+                            'status'  => 200,
+                            'message' => 'Karyawan has been updated',
+                        ], 200);
+                    } catch (\Throwable $th) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status'  => 500,
+                            'message' => $th->getMessage(),
+                        ], 500);
+                    }
+                } else {
+                    return response()->json([
+                        'status' => 404,
+                        'message' => 'Data not found..!',
+                    ]);
+                }
             }
+        } else {
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -252,35 +285,44 @@ class KaryawanController extends Controller
      */
     public function destroy($id)
     {
-        DB::beginTransaction();
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Karyawan::find($id);
+        $user = auth()->user();
 
-            if (!$data) {
+        if ($user->can('delete karyawan')) {
+            DB::beginTransaction();
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Karyawan::find($id);
+
+                if (!$data) {
+                    return response()->json([
+                        'status'  => 404,
+                        'message' => "Data not found!",
+                    ], 404);
+                }
+
+                //Kondisi apabila terdapat path gambar pada tabel slider
+                if ($data->ttd_picture != null) {
+                    Storage::delete($data->ttd_picture);
+                }
+
+                $data->delete();
+
+                DB::commit();
+
                 return response()->json([
-                    'status'  => 404,
-                    'message' => "Data not found!",
-                ], 404);
+                    'status'  => 200,
+                    'message' => "Karyawan telah berhasil dihapus",
+                ], 200);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-
-            //Kondisi apabila terdapat path gambar pada tabel slider
-            if ($data->ttd_picture != null) {
-                Storage::delete($data->ttd_picture);
-            }
-
-            $data->delete();
-
-            DB::commit();
-
-            return response()->json([
-                'status'  => 200,
-                'message' => "Karyawan telah berhasil dihapus",
-            ], 200);
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }

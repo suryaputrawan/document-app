@@ -66,7 +66,9 @@
                         <thead>
                             <tr>
                                 <th style="width: 20px">NO</th>
-                                <th style="width: 100px">ACTION</th>
+                                @canany(['update hospital', 'delete hospital'])
+                                    <th style="width: 100px">ACTION</th>  
+                                @endcanany
                                 <th>HOSPITAL NAME</th>
                             </tr>
                         </thead>
@@ -107,7 +109,9 @@
                     orderable: false, searchable: false,
                     className: "text-center",
                 },
-                { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @canany(['update hospital', 'delete hospital'])
+                    { data: "action", name: "action", orderable: false, searchable: false, className: "text-center", },
+                @endcanany
                 { data: "name", name: "name", orderable: true  },
             ],
             drawCallback: function( settings ) {

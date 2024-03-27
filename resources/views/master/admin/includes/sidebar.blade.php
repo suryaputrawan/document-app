@@ -18,52 +18,71 @@
                     <span class="link-title">Dashboard</span>
                 </a>
             </li>
+
             <li class="nav-item {{ active_class(['document', 'document/*']) }}">
                 <a href="{{ route('document.index') }}" class="nav-link">
                     <i class="link-icon" data-feather="file-text"></i>
                     <span class="link-title">Document</span>
                 </a>
             </li>
-            <li class="nav-item {{ active_class(['certificates', 'certificates/*']) }}">
-                <a href="{{ route('certificates.index') }}" class="nav-link">
-                    <i class="link-icon" data-feather="file-text"></i>
-                    <span class="link-title">Certificates</span>
-                </a>
-            </li>
+
+            @can('create certificate')
+                <li class="nav-item {{ active_class(['certificates', 'certificates/*']) }}">
+                    <a href="{{ route('certificates.index') }}" class="nav-link">
+                        <i class="link-icon" data-feather="file-text"></i>
+                        <span class="link-title">Certificates</span>
+                    </a>
+                </li> 
+            @endcan
             
             @can('view master')
-                <li class="nav-item nav-category">Master</li>
+                <li class="nav-item nav-category">Master Data</li>
+            @endcan
+
+            @can('create jenis')
                 <li class="nav-item {{ active_class(['admin/master/jenis', 'admin/master/jenis/*']) }}">
                     <a href="{{ route('admin.jenis.index') }}" class="nav-link">
                         <i class="link-icon" data-feather="file"></i>
                         <span class="link-title">Jenis Document</span>
                     </a>
                 </li>
+            @endcan
+
+            @can('create template')
                 <li class="nav-item {{ active_class(['admin/master/document-template', 'admin/master/document-template/*']) }}">
                     <a href="{{ route('admin.document-template.index') }}" class="nav-link">
                         <i class="link-icon" data-feather="file-text"></i>
                         <span class="link-title">Document Template</span>
                     </a>
                 </li>
+            @endcan
+                
+            @can('create karyawan')
                 <li class="nav-item {{ active_class(['admin/master/karyawan', 'admin/master/karyawan/*']) }}">
                     <a href="{{ route('admin.karyawan.index') }}" class="nav-link">
                         <i class="link-icon" data-feather="user"></i>
                         <span class="link-title">Karyawan</span>
                     </a>
-                </li>
+                </li> 
+            @endcan
+
+            @can('create certificate type')
                 <li class="nav-item {{ active_class(['admin/master/certificate-types', 'admin/master/certificate-types/*']) }}">
                     <a href="{{ route('admin.certificate-types.index') }}" class="nav-link">
                         <i class="link-icon" data-feather="file-text"></i>
                         <span class="link-title">Certificate Types</span>
                     </a>
                 </li>
+            @endcan
+                
+            @can('create hospital')
                 <li class="nav-item {{ active_class(['admin/master/hospitals', 'admin/master/hospitals/*']) }}">
                     <a href="{{ route('admin.hospitals.index') }}" class="nav-link">
                         <i class="link-icon" data-feather="home"></i>
                         <span class="link-title">Hospital / Clinic</span>
                     </a>
                 </li>
-            @endcan
+            @endcan   
             
             @can('assign permission')
                 <li class="nav-item nav-category">Role & Permission</li>

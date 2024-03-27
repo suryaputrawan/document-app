@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Client;
 
 use Throwable;
+use Carbon\Carbon;
+use App\Models\Hospital;
 use App\Models\Certificate;
 use Illuminate\Http\Request;
 use App\Models\CertificateType;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Models\Hospital;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -21,76 +22,88 @@ class CertificateController extends Controller
      */
     public function index()
     {
-        $dataEndDate = Certificate::where('end_date', '<=', Carbon::now()->addDay(7))
-            ->where('isNotif', 1)->get();
+        $user = auth()->user();
 
-        if (request()->type == 'datatable') {
-            $data = Certificate::latest()->get();
+        if ($user->can('create certificate')) {
+            $dataEndDate = Certificate::where('end_date', '<=', Carbon::now()->addDay(7))
+                ->where('isNotif', 1)->get();
 
-            return datatables()->of($data)
-                ->addColumn('action', function ($data) {
-                    $user            = auth()->user();
-                    $editRoute       = 'certificates.edit';
-                    $viewRoute       = 'certificates.show';
-                    $deleteRoute     = 'certificates.destroy';
-                    $dataId          = Crypt::encryptString($data->id);
-                    $dataDeleteLabel = $data->name;
+            if (request()->type == 'datatable') {
+                if (auth()->user()->username == "superadmin") {
+                    $data = Certificate::latest()->get();
+                } else {
+                    $karyawan = auth()->user()->karyawan_id;
+                    $data = Certificate::where('user_created', $karyawan)
+                        ->latest()
+                        ->get();
+                }
 
-                    $action = "";
+                return datatables()->of($data)
+                    ->addColumn('action', function ($data) use ($user) {
+                        $editRoute       = 'certificates.edit';
+                        $viewRoute       = 'certificates.show';
+                        $deleteRoute     = 'certificates.destroy';
+                        $dataId          = Crypt::encryptString($data->id);
+                        $dataDeleteLabel = $data->name;
 
-                    if ($user->can('update certificate')) {
-                        $action .= '
+                        $action = "";
+
+                        if ($user->can('update certificate')) {
+                            $action .= '
                         <a class="btn btn-info btn-icon" id="btn-view" type="button" data-url="' . route($viewRoute, $dataId) . '">
                             <i data-feather="eye"></i>
                         </a> ';
-                    }
+                        }
 
-                    if ($user->can('update certificate')) {
-                        $action .= '
+                        if ($user->can('update certificate')) {
+                            $action .= '
                         <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
                             <i data-feather="edit"></i>
                         </a> ';
-                    }
+                        }
 
-                    if ($user->can('delete certificate')) {
-                        $action .= '
+                        if ($user->can('delete certificate')) {
+                            $action .= '
                         <button class="btn btn-danger btn-icon delete-item" 
                             data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
                             <i data-feather="trash"></i>
                         </button> ';
-                    }
+                        }
 
-                    $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
+                        $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
                         ' . $action . '
                     </div>';
-                    return $group;
-                })
-                ->editColumn('start_date', function ($data) {
-                    return '<span class="text-primary">' . Carbon::parse($data->start_date)->format('d M Y') . '</span>';
-                })
-                ->editColumn('end_date', function ($data) {
-                    return '<span class="text-danger">' . Carbon::parse($data->end_date)->format('d M Y') . '</span>';
-                })
-                ->addColumn('type', function ($data) {
-                    return $data->certificateType->name;
-                })
-                ->addColumn('notif', function ($data) {
-                    $updateNotif    = 'certificates.notif';
-                    $dataId         = Crypt::encryptString($data->id);
+                        return $group;
+                    })
+                    ->editColumn('start_date', function ($data) {
+                        return '<span class="text-primary">' . Carbon::parse($data->start_date)->format('d M Y') . '</span>';
+                    })
+                    ->editColumn('end_date', function ($data) {
+                        return '<span class="text-danger">' . Carbon::parse($data->end_date)->format('d M Y') . '</span>';
+                    })
+                    ->addColumn('type', function ($data) {
+                        return $data->certificateType->name;
+                    })
+                    ->addColumn('notif', function ($data) {
+                        $updateNotif    = 'certificates.notif';
+                        $dataId         = Crypt::encryptString($data->id);
 
-                    return '<div><input type="checkbox" name="notification" class="checkbox" ' . ($data->isNotif ? 'checked' : '') . '
+                        return '<div><input type="checkbox" name="notification" class="checkbox" ' . ($data->isNotif ? 'checked' : '') . '
                         data-url="' . route($updateNotif, $dataId) . '"></div>';
-                })
-                ->rawColumns(['action', 'type', 'start_date', 'end_date', 'notif'])
-                ->make(true);
-        }
+                    })
+                    ->rawColumns(['action', 'type', 'start_date', 'end_date', 'notif'])
+                    ->make(true);
+            }
 
-        return view('certificate.index', [
-            'breadcrumb'    => 'Certificates',
-            'types'         => CertificateType::orderBy('name', 'asc')->get(['id', 'name']),
-            'hospital'      => Hospital::orderBy('name', 'asc')->get(['id', 'name']),
-            'dataEndDate'   => $dataEndDate
-        ]);
+            return view('certificate.index', [
+                'breadcrumb'    => 'Certificates',
+                'types'         => CertificateType::orderBy('name', 'asc')->get(['id', 'name']),
+                'hospital'      => Hospital::orderBy('name', 'asc')->get(['id', 'name']),
+                'dataEndDate'   => $dataEndDate
+            ]);
+        } else {
+            return View::make('error.403');
+        }
     }
 
     /**
@@ -172,7 +185,10 @@ class CertificateController extends Controller
                 }
             }
         } else {
-            abort(403);
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -206,7 +222,10 @@ class CertificateController extends Controller
                 ], 500);
             }
         } else {
-            abort(403);
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -240,7 +259,10 @@ class CertificateController extends Controller
                 ], 500);
             }
         } else {
-            abort(403);
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -337,7 +359,10 @@ class CertificateController extends Controller
                 }
             }
         } else {
-            abort(403);
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -381,7 +406,10 @@ class CertificateController extends Controller
                 ], 500);
             }
         } else {
-            abort(403);
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -423,7 +451,10 @@ class CertificateController extends Controller
                 ]);
             }
         } else {
-            abort(403);
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 }

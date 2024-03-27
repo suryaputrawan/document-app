@@ -10,6 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\DocumentTemplate;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Crypt;
 
 class DocumentTemplateController extends Controller
@@ -19,59 +20,64 @@ class DocumentTemplateController extends Controller
      */
     public function index()
     {
-        if (request()->type == 'datatable') {
-            $data = DocumentTemplate::with('jenis')
-                ->get()->sortBy('jenis.nama');
+        $user = auth()->user();
 
-            return datatables()->of($data)
-                ->addColumn('action', function ($data) {
-                    $user            = auth()->user();
-                    $editRoute       = 'admin.document-template.edit';
-                    $deleteRoute     = 'admin.document-template.destroy';
-                    $dataId          = Crypt::encryptString($data->id);
-                    $dataDeleteLabel = 'Document Template ' . $data->jenis->nama;
+        if ($user->can('create template')) {
+            if (request()->type == 'datatable') {
+                $data = DocumentTemplate::with('jenis')
+                    ->get()->sortBy('jenis.nama');
 
-                    $action = "";
+                return datatables()->of($data)
+                    ->addColumn('action', function ($data) use ($user) {
+                        $editRoute       = 'admin.document-template.edit';
+                        $deleteRoute     = 'admin.document-template.destroy';
+                        $dataId          = Crypt::encryptString($data->id);
+                        $dataDeleteLabel = 'Document Template ' . $data->jenis->nama;
 
-                    if ($user->can('update template')) {
-                        $action .= '
-                        <a class="btn btn-warning btn-icon" type="button" href="' . route($editRoute, $dataId) . '">
-                            <i data-feather="edit"></i>
-                        </a> ';
-                    }
+                        $action = "";
 
-                    if ($user->can('delete template')) {
-                        $action .= '
-                        <button class="btn btn-danger btn-icon delete-item" 
-                            data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
-                            <i data-feather="trash"></i>
-                        </button> ';
-                    }
+                        if ($user->can('update template')) {
+                            $action .= '
+                            <a class="btn btn-warning btn-icon" type="button" href="' . route($editRoute, $dataId) . '">
+                                <i data-feather="edit"></i>
+                            </a> ';
+                        }
 
-                    $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
-                        ' . $action . '
-                    </div>';
-                    return $group;
-                })
-                ->addColumn('jenis', function ($data) {
-                    return $data->jenis->nama;
-                })
-                ->addColumn('template', function ($data) {
-                    $showRoute     = 'admin.document-template.show';
-                    $dataId          = Crypt::encryptString($data->id);
+                        if ($user->can('delete template')) {
+                            $action .= '
+                            <button class="btn btn-danger btn-icon delete-item" 
+                                data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
+                                <i data-feather="trash"></i>
+                            </button> ';
+                        }
 
-                    return $data->template ?
-                        '<a class="btn btn-info" type="button" target="_blank" href="' . route($showRoute, $dataId) . '">
-                        Show Template
-                    </a> ' : '';
-                })
-                ->rawColumns(['action', 'jenis', 'template'])
-                ->make(true);
+                        $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
+                            ' . $action . '
+                        </div>';
+                        return $group;
+                    })
+                    ->addColumn('jenis', function ($data) {
+                        return $data->jenis->nama;
+                    })
+                    ->addColumn('template', function ($data) {
+                        $showRoute     = 'admin.document-template.show';
+                        $dataId          = Crypt::encryptString($data->id);
+
+                        return $data->template ?
+                            '<a class="btn btn-info" type="button" target="_blank" href="' . route($showRoute, $dataId) . '">
+                            Show Template
+                        </a> ' : '';
+                    })
+                    ->rawColumns(['action', 'jenis', 'template'])
+                    ->make(true);
+            }
+
+            return view('admin.modules.document-template.index', [
+                'breadcrumb' => 'Document Templates'
+            ]);
+        } else {
+            return View::make('error.403');
         }
-
-        return view('admin.modules.document-template.index', [
-            'breadcrumb' => 'Document Templates'
-        ]);
     }
 
     /**
@@ -79,11 +85,17 @@ class DocumentTemplateController extends Controller
      */
     public function create()
     {
-        return view('admin.modules.document-template.create', [
-            'breadcrumb'    => 'Document Template',
-            'btnSubmit'     => 'Simpan',
-            'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
-        ]);
+        $user = auth()->user();
+
+        if ($user->can('create template')) {
+            return view('admin.modules.document-template.create', [
+                'breadcrumb'    => 'Document Template',
+                'btnSubmit'     => 'Simpan',
+                'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
+            ]);
+        } else {
+            return View::make('error.403');
+        }
     }
 
     /**
@@ -91,40 +103,47 @@ class DocumentTemplateController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'jenis_document'    => 'required|unique:document_templates,jenis_id',
-            'isi_document'      => 'required|min:5'
-        ]);
+        $user = auth()->user();
 
-        try {
-            DB::beginTransaction();
-
-            DocumentTemplate::create([
-                'jenis_id'  => $request->jenis_document,
-                'template'  => $request->isi_document
+        if ($user->can('create template')) {
+            $request->validate([
+                'jenis_document'    => 'required|unique:document_templates,jenis_id',
+                'isi_document'      => 'required|min:5'
             ]);
 
-            DB::commit();
+            try {
+                DB::beginTransaction();
 
-            if (isset($_POST['btnSimpan'])) {
-                return redirect()->route('admin.document-template.index')
-                    ->with('success', 'Document template has been created');
-            } else {
-                return redirect()->route('admin.document-template.create')
-                    ->with('success', 'Document template has been created');
+                DocumentTemplate::create([
+                    'jenis_id'  => $request->jenis_document,
+                    'template'  => $request->isi_document
+                ]);
+
+                DB::commit();
+
+                if (isset($_POST['btnSimpan'])) {
+                    return redirect()->route('admin.document-template.index')
+                        ->with('success', 'Document template has been created');
+                } else {
+                    return redirect()->route('admin.document-template.create')
+                        ->with('success', 'Document template has been created');
+                }
+            } catch (Exception $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            } catch (Throwable $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
             }
-        } catch (Exception $e) {
+        } else {
             DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
-        } catch (Throwable $e) {
-            DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            return View::make('error.403');
         }
     }
 
@@ -151,27 +170,33 @@ class DocumentTemplateController extends Controller
      */
     public function edit($id)
     {
-        try {
-            $decrypt = Crypt::decryptString($id);
-            $data = DocumentTemplate::find($decrypt);
-            $jenis = Jenis::orderBy('nama', 'asc')->get(['id', 'nama']);
+        $user = auth()->user();
 
-            if (!$data) {
+        if ($user->can('update template')) {
+            try {
+                $decrypt = Crypt::decryptString($id);
+                $data = DocumentTemplate::find($decrypt);
+                $jenis = Jenis::orderBy('nama', 'asc')->get(['id', 'nama']);
+
+                if (!$data) {
+                    return redirect()
+                        ->back()
+                        ->with('error', "Data tidak ditemukan");
+                }
+
+                return view('admin.modules.document-template.edit', [
+                    'breadcrumb'    => 'Document Template',
+                    'btnSubmit'     => 'Simpan Perubahan',
+                    'data'          => $data,
+                    'jenis'         => $jenis
+                ]);
+            } catch (\Throwable $e) {
                 return redirect()
                     ->back()
-                    ->with('error', "Data tidak ditemukan");
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
             }
-
-            return view('admin.modules.document-template.edit', [
-                'breadcrumb'    => 'Document Template',
-                'btnSubmit'     => 'Simpan Perubahan',
-                'data'          => $data,
-                'jenis'         => $jenis
-            ]);
-        } catch (\Throwable $e) {
-            return redirect()
-                ->back()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+        } else {
+            return View::make('error.403');
         }
     }
 
@@ -180,42 +205,49 @@ class DocumentTemplateController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $id = Crypt::decryptString($id);
-        $data = DocumentTemplate::find($id);
+        $user = auth()->user();
 
-        if (!$data) {
-            return redirect()
-                ->back()
-                ->with('error', "Data not found");
-        }
+        if ($user->can('update template')) {
+            $id = Crypt::decryptString($id);
+            $data = DocumentTemplate::find($id);
 
-        $request->validate([
-            'jenis_document'    => 'required|unique:document_templates,jenis_id,' . $data->id,
-            'isi_document'      => 'required|min:5'
-        ]);
+            if (!$data) {
+                return redirect()
+                    ->back()
+                    ->with('error', "Data not found");
+            }
 
-        DB::beginTransaction();
-        try {
-            $data->update([
-                'jenis_id'      => $request->jenis_document,
-                'template'      => $request->isi_document
+            $request->validate([
+                'jenis_document'    => 'required|unique:document_templates,jenis_id,' . $data->id,
+                'isi_document'      => 'required|min:5'
             ]);
 
-            DB::commit();
-            return redirect()->route('admin.document-template.index')
-                ->with('success', 'Document template has been updated');
-        } catch (\Exception $e) {
+            DB::beginTransaction();
+            try {
+                $data->update([
+                    'jenis_id'      => $request->jenis_document,
+                    'template'      => $request->isi_document
+                ]);
+
+                DB::commit();
+                return redirect()->route('admin.document-template.index')
+                    ->with('success', 'Document template has been updated');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            }
+        } else {
             DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            return View::make('error.403');
         }
     }
 
@@ -224,31 +256,40 @@ class DocumentTemplateController extends Controller
      */
     public function destroy($id)
     {
-        DB::beginTransaction();
-        try {
-            $id = Crypt::decryptString($id);
-            $data = DocumentTemplate::find($id);
+        $user = auth()->user();
 
-            if (!$data) {
+        if ($user->can('delete template')) {
+            DB::beginTransaction();
+            try {
+                $id = Crypt::decryptString($id);
+                $data = DocumentTemplate::find($id);
+
+                if (!$data) {
+                    return response()->json([
+                        'status'  => 404,
+                        'message' => "Data not found!",
+                    ], 404);
+                }
+
+                $data->delete();
+
+
+                DB::commit();
+
                 return response()->json([
-                    'status'  => 404,
-                    'message' => "Data not found!",
-                ], 404);
+                    'status'  => 200,
+                    'message' => "Document template has been deleted",
+                ], 200);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-
-            $data->delete();
-
-
-            DB::commit();
-
-            return response()->json([
-                'status'  => 200,
-                'message' => "Document template has been deleted",
-            ], 200);
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }

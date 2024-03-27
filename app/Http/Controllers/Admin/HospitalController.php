@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
 
@@ -18,46 +19,51 @@ class HospitalController extends Controller
      */
     public function index()
     {
-        if (request()->type == 'datatable') {
-            $data = Hospital::orderBy('name', 'asc')->get(['id', 'name']);
+        $user = auth()->user();
 
-            return datatables()->of($data)
-                ->addColumn('action', function ($data) {
-                    $user            = auth()->user();
-                    $editRoute       = 'admin.hospitals.edit';
-                    $deleteRoute     = 'admin.hospitals.destroy';
-                    $dataId          = Crypt::encryptString($data->id);
-                    $dataDeleteLabel = $data->name;
+        if ($user->can('create hospital')) {
+            if (request()->type == 'datatable') {
+                $data = Hospital::orderBy('name', 'asc')->get(['id', 'name']);
 
-                    $action = "";
+                return datatables()->of($data)
+                    ->addColumn('action', function ($data) use ($user) {
+                        $editRoute       = 'admin.hospitals.edit';
+                        $deleteRoute     = 'admin.hospitals.destroy';
+                        $dataId          = Crypt::encryptString($data->id);
+                        $dataDeleteLabel = $data->name;
 
-                    if ($user->can('update hospital')) {
-                        $action .= '
-                        <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
-                            <i data-feather="edit"></i>
-                        </a> ';
-                    }
+                        $action = "";
 
-                    if ($user->can('delete hospital')) {
-                        $action .= '
-                        <button class="btn btn-danger btn-icon delete-item" 
-                            data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
-                            <i data-feather="trash"></i>
-                        </button> ';
-                    }
+                        if ($user->can('update hospital')) {
+                            $action .= '
+                            <a class="btn btn-warning btn-icon" id="btn-edit" type="button" data-url="' . route($editRoute, $dataId) . '">
+                                <i data-feather="edit"></i>
+                            </a> ';
+                        }
 
-                    $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
-                        ' . $action . '
-                    </div>';
-                    return $group;
-                })
-                ->rawColumns(['action'])
-                ->make(true);
+                        if ($user->can('delete hospital')) {
+                            $action .= '
+                            <button class="btn btn-danger btn-icon delete-item" 
+                                data-label="' . $dataDeleteLabel . '" data-url="' . route($deleteRoute, $dataId) . '">
+                                <i data-feather="trash"></i>
+                            </button> ';
+                        }
+
+                        $group = '<div class="btn-group btn-group-sm mb-1 mb-md-0" role="group">
+                            ' . $action . '
+                        </div>';
+                        return $group;
+                    })
+                    ->rawColumns(['action'])
+                    ->make(true);
+            }
+
+            return view('admin.modules.hospital.index', [
+                'breadcrumb' => 'Hospitals'
+            ]);
+        } else {
+            return View::make('error.403');
         }
-
-        return view('admin.modules.hospital.index', [
-            'breadcrumb' => 'Hospitals'
-        ]);
     }
 
     /**
@@ -65,7 +71,7 @@ class HospitalController extends Controller
      */
     public function create()
     {
-        //
+        return View::make('error.403');
     }
 
     /**
@@ -73,35 +79,44 @@ class HospitalController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make([
-            'name' => $request->name
-        ], [
-            'name' => 'required|min:3|unique:hospitals,name',
-        ]);
+        $user = auth()->user();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'errors' => $validator->messages(),
+        if ($user->can('create hospital')) {
+            $validator = Validator::make([
+                'name' => $request->name
+            ], [
+                'name' => 'required|min:3|unique:hospitals,name',
             ]);
-        } else {
-            DB::beginTransaction();
-            try {
-                Hospital::create([
-                    'name' => Str::upper($request->name)
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 400,
+                    'errors' => $validator->messages(),
                 ]);
-                DB::commit();
-                return response()->json([
-                    'status'  => 200,
-                    'message' => 'Hospital / Clinic has been success to created',
-                ], 200);
-            } catch (Throwable $th) {
-                DB::rollBack();
-                return response()->json([
-                    'status'  => 500,
-                    'message' => $th->getMessage(),
-                ], 500);
+            } else {
+                DB::beginTransaction();
+                try {
+                    Hospital::create([
+                        'name' => Str::upper($request->name)
+                    ]);
+                    DB::commit();
+                    return response()->json([
+                        'status'  => 200,
+                        'message' => 'Hospital / Clinic has been success to created',
+                    ], 200);
+                } catch (Throwable $th) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status'  => 500,
+                        'message' => $th->getMessage(),
+                    ], 500);
+                }
             }
+        } else {
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -110,7 +125,7 @@ class HospitalController extends Controller
      */
     public function show(Hospital $hospital)
     {
-        //
+        return View::make('error.403');
     }
 
     /**
@@ -118,25 +133,34 @@ class HospitalController extends Controller
      */
     public function edit($id)
     {
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Hospital::find($id);
+        $user = auth()->user();
 
-            if ($data) {
+        if ($user->can('update hospital')) {
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Hospital::find($id);
+
+                if ($data) {
+                    return response()->json([
+                        'status' => 200,
+                        'data' => $data,
+                    ]);
+                } else {
+                    return response()->json([
+                        'status' => 404,
+                        'message' => 'Data not found',
+                    ]);
+                }
+            } catch (\Throwable $e) {
                 return response()->json([
-                    'status' => 200,
-                    'data' => $data,
-                ]);
-            } else {
-                return response()->json([
-                    'status' => 404,
-                    'message' => 'Data not found',
-                ]);
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }
@@ -146,44 +170,53 @@ class HospitalController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $data = Hospital::find($id);
+        $user = auth()->user();
 
-        $validator = Validator::make([
-            'name' => $request->name
-        ], [
-            'name' => 'required|min:3|unique:hospitals,name,' . $data->id,
-        ]);
+        if ($user->can('update hospital')) {
+            $data = Hospital::find($id);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'errors' => $validator->messages(),
+            $validator = Validator::make([
+                'name' => $request->name
+            ], [
+                'name' => 'required|min:3|unique:hospitals,name,' . $data->id,
             ]);
-        } else {
-            if ($data) {
-                DB::beginTransaction();
-                try {
-                    $data->update([
-                        'name' => Str::upper($request->name)
-                    ]);
-                    DB::commit();
-                    return response()->json([
-                        'status'  => 200,
-                        'message' => 'Hospital / clinic has been updated',
-                    ], 200);
-                } catch (\Throwable $th) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status'  => 500,
-                        'message' => $th->getMessage(),
-                    ], 500);
-                }
-            } else {
+
+            if ($validator->fails()) {
                 return response()->json([
-                    'status' => 404,
-                    'message' => 'Data not found..!',
+                    'status' => 400,
+                    'errors' => $validator->messages(),
                 ]);
+            } else {
+                if ($data) {
+                    DB::beginTransaction();
+                    try {
+                        $data->update([
+                            'name' => Str::upper($request->name)
+                        ]);
+                        DB::commit();
+                        return response()->json([
+                            'status'  => 200,
+                            'message' => 'Hospital / clinic has been updated',
+                        ], 200);
+                    } catch (\Throwable $th) {
+                        DB::rollBack();
+                        return response()->json([
+                            'status'  => 500,
+                            'message' => $th->getMessage(),
+                        ], 500);
+                    }
+                } else {
+                    return response()->json([
+                        'status' => 404,
+                        'message' => 'Data not found..!',
+                    ]);
+                }
             }
+        } else {
+            return response()->json([
+                'status'  => 500,
+                'message' => 'User dont have permission',
+            ], 500);
         }
     }
 
@@ -192,27 +225,36 @@ class HospitalController extends Controller
      */
     public function destroy($id)
     {
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Hospital::find($id);
+        $user = auth()->user();
 
-            if (!$data) {
+        if ($user->can('update hospital')) {
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Hospital::find($id);
+
+                if (!$data) {
+                    return response()->json([
+                        'status'  => 404,
+                        'message' => "Data not found!",
+                    ], 404);
+                }
+
+                $data->delete();
+
                 return response()->json([
-                    'status'  => 404,
-                    'message' => "Data not found!",
-                ], 404);
+                    'status'  => 200,
+                    'message' => "Hospital / clinic has been deleted",
+                ], 200);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-
-            $data->delete();
-
-            return response()->json([
-                'status'  => 200,
-                'message' => "Hospital / clinic has been deleted",
-            ], 200);
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }

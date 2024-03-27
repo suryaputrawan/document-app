@@ -14,13 +14,14 @@ use Illuminate\Http\Request;
 use App\Mail\DocumentSignMail;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\DocumentApproval;
+use App\Models\DocumentTemplate;
 use App\Models\DocumentRecipient;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\DocumentRequest;
-use App\Models\DocumentTemplate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Crypt;
+use App\Http\Requests\DocumentRequest;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -157,27 +158,33 @@ class DocumentController extends Controller
      */
     public function create(Request $request)
     {
-        try {
-            $msJenis = Jenis::where('nama', $request->jenis_document)->first();
-            $template = DocumentTemplate::where('jenis_id', $msJenis->id)->first();
+        $user = auth()->user();
 
-            if (!$template) {
+        if ($user->can('create document')) {
+            try {
+                $msJenis = Jenis::where('nama', $request->jenis_document)->first();
+                $template = DocumentTemplate::where('jenis_id', $msJenis->id)->first();
+
+                if (!$template) {
+                    return redirect()
+                        ->back()
+                        ->with('error', "Template document not found..");
+                }
+
+                return view('surat.create', [
+                    'breadcrumb'    => 'Document',
+                    'btnSubmit'     => 'Simpan',
+                    'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
+                    'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan']),
+                    'template'      => $template
+                ]);
+            } catch (\Throwable $e) {
                 return redirect()
                     ->back()
-                    ->with('error', "Template document not found..");
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
             }
-
-            return view('surat.create', [
-                'breadcrumb'    => 'Document',
-                'btnSubmit'     => 'Simpan',
-                'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
-                'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan']),
-                'template'      => $template
-            ]);
-        } catch (\Throwable $e) {
-            return redirect()
-                ->back()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+        } else {
+            return View::make('error.403');
         }
     }
 
@@ -186,74 +193,80 @@ class DocumentController extends Controller
      */
     public function store(DocumentRequest $request)
     {
-        try {
-            DB::beginTransaction();
+        $user = auth()->user();
 
-            $document = Document::create([
-                'no_surat'                  => $request->no_surat,
-                'tgl_surat'                 => Carbon::now()->format('Y-m-d'),
-                'jenis_id'                  => $request->jenis_document,
-                'pengirim_diajukan_oleh'    => $request->diajukan_oleh,
-                'pengirim_disetujui_oleh'   => $request->disetujui_oleh,
-                'body'                      => $request->isi_document,
-                'created_by'                => auth()->user()->karyawan_id,
-            ]);
+        if ($user->can('create document')) {
+            try {
+                DB::beginTransaction();
 
-            DB::commit();
+                $document = Document::create([
+                    'no_surat'                  => $request->no_surat,
+                    'tgl_surat'                 => Carbon::now()->format('Y-m-d'),
+                    'jenis_id'                  => $request->jenis_document,
+                    'pengirim_diajukan_oleh'    => $request->diajukan_oleh,
+                    'pengirim_disetujui_oleh'   => $request->disetujui_oleh,
+                    'body'                      => $request->isi_document,
+                    'created_by'                => auth()->user()->karyawan_id,
+                ]);
 
-            //Sync to table document_approval (many to many)
-            $document->approval()->sync(request('approval'));
+                DB::commit();
 
-            //Sync to table document_recipient (many to many)
-            $document->recipient()->sync(request('recipient'));
+                //Sync to table document_approval (many to many)
+                $document->approval()->sync(request('approval'));
 
-            // Send Email
-            // To Pengirim Diajukan
-            $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
-                ->first(['id', 'name', 'email']);
-            Mail::to($diajukanOleh->email)->send(new DocumentMail($document));
+                //Sync to table document_recipient (many to many)
+                $document->recipient()->sync(request('recipient'));
 
-            // To Pengirim Disetujui
-            $disetujuiOleh = User::where('karyawan_id', $document->pengirim_disetujui_oleh)
-                ->first(['id', 'name', 'email']);
-            Mail::to($disetujuiOleh->email)->send(new DocumentMail($document));
-
-            // To Recipient
-            $docRecip = DocumentRecipient::where('document_id', $document->id)->get();
-            foreach ($docRecip as $recipient) {
-                $userRecipient = User::where('karyawan_id', $recipient->karyawan_id)
+                // Send Email
+                // To Pengirim Diajukan
+                $diajukanOleh = User::where('karyawan_id', $document->pengirim_diajukan_oleh)
                     ->first(['id', 'name', 'email']);
-                Mail::to($userRecipient->email)->send(new DocumentMail($document));
-            }
+                Mail::to($diajukanOleh->email)->send(new DocumentMail($document));
 
-            // To Approval
-            $docApproval = DocumentApproval::where('document_id', $document->id)->get();
-            foreach ($docApproval as $approval) {
-                $userApproval = User::where('karyawan_id', $approval->karyawan_id)
+                // To Pengirim Disetujui
+                $disetujuiOleh = User::where('karyawan_id', $document->pengirim_disetujui_oleh)
                     ->first(['id', 'name', 'email']);
-                Mail::to($userApproval->email)->send(new DocumentMail($document));
-            }
-            // End Send Email
+                Mail::to($disetujuiOleh->email)->send(new DocumentMail($document));
 
-            if (isset($_POST['btnSimpan'])) {
-                return redirect()->route('document.index')
-                    ->with('success', 'Document has been created');
-            } else {
-                return redirect()->route('document.create')
-                    ->with('success', 'Document has been created');
+                // To Recipient
+                $docRecip = DocumentRecipient::where('document_id', $document->id)->get();
+                foreach ($docRecip as $recipient) {
+                    $userRecipient = User::where('karyawan_id', $recipient->karyawan_id)
+                        ->first(['id', 'name', 'email']);
+                    Mail::to($userRecipient->email)->send(new DocumentMail($document));
+                }
+
+                // To Approval
+                $docApproval = DocumentApproval::where('document_id', $document->id)->get();
+                foreach ($docApproval as $approval) {
+                    $userApproval = User::where('karyawan_id', $approval->karyawan_id)
+                        ->first(['id', 'name', 'email']);
+                    Mail::to($userApproval->email)->send(new DocumentMail($document));
+                }
+                // End Send Email
+
+                if (isset($_POST['btnSimpan'])) {
+                    return redirect()->route('document.index')
+                        ->with('success', 'Document has been created');
+                } else {
+                    return redirect()->route('document.create')
+                        ->with('success', 'Document has been created');
+                }
+            } catch (Exception $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            } catch (Throwable $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
             }
-        } catch (Exception $e) {
-            DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
-        } catch (Throwable $e) {
-            DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+        } else {
+            return View::make('error.403');
         }
     }
 
@@ -285,31 +298,37 @@ class DocumentController extends Controller
      */
     public function edit($id)
     {
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Document::find($id);
-            $recipient = DocumentRecipient::where('document_id', $data->id)->get();
-            $approval = DocumentApproval::where('document_id', $data->id)->get();
+        $user = auth()->user();
 
-            if (!$data) {
+        if ($user->can('update document')) {
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Document::find($id);
+                $recipient = DocumentRecipient::where('document_id', $data->id)->get();
+                $approval = DocumentApproval::where('document_id', $data->id)->get();
+
+                if (!$data) {
+                    return redirect()
+                        ->back()
+                        ->with('error', "Data not found..");
+                }
+
+                return view('surat.edit', [
+                    'breadcrumb'    => 'Document',
+                    'btnSubmit'     => 'Simpan Perubahan',
+                    'data'          => $data,
+                    'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
+                    'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan']),
+                    'recipient'     => $recipient,
+                    'approval'      => $approval
+                ]);
+            } catch (\Throwable $e) {
                 return redirect()
                     ->back()
-                    ->with('error', "Data not found..");
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
             }
-
-            return view('surat.edit', [
-                'breadcrumb'    => 'Document',
-                'btnSubmit'     => 'Simpan Perubahan',
-                'data'          => $data,
-                'jenis'         => Jenis::orderBy('nama', 'asc')->get(['id', 'nama']),
-                'karyawan'      => Karyawan::orderBy('nama', 'asc')->get(['id', 'nama', 'jabatan']),
-                'recipient'     => $recipient,
-                'approval'      => $approval
-            ]);
-        } catch (\Throwable $e) {
-            return redirect()
-                ->back()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+        } else {
+            return View::make('error.403');
         }
     }
 
@@ -318,58 +337,64 @@ class DocumentController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $id = Crypt::decryptString($id);
-        $data = Document::find($id);
-        $recipient = DocumentRecipient::where('document_id', $data->id)->get();
-        $approval = DocumentApproval::where('document_id', $data->id)->get();
+        $user = auth()->user();
 
-        if (!$data) {
-            return redirect()
-                ->back()
-                ->with('error', "Data not found");
-        }
+        if ($user->can('update document')) {
+            $id = Crypt::decryptString($id);
+            $data = Document::find($id);
+            $recipient = DocumentRecipient::where('document_id', $data->id)->get();
+            $approval = DocumentApproval::where('document_id', $data->id)->get();
 
-        $request->validate([
-            'no_surat'          => 'required|max:255|min:5|unique:documents,no_surat,' . $data->id,
-            'jenis_document'    => 'required',
-            'diajukan_oleh'     => 'required',
-            'disetujui_oleh'    => 'required',
-            'recipient'         => 'array',
-            'approval'          => 'array',
-            'isi_document'      => 'required|min:5',
-        ]);
+            if (!$data) {
+                return redirect()
+                    ->back()
+                    ->with('error', "Data not found");
+            }
 
-        DB::beginTransaction();
-        try {
-            $data->update([
-                'no_surat'                  => $request->no_surat,
-                'jenis_id'                  => $request->jenis_document,
-                'pengirim_diajukan_oleh'    => $request->diajukan_oleh,
-                'pengirim_disetujui_oleh'   => $request->disetujui_oleh,
-                'body'                      => $request->isi_document
+            $request->validate([
+                'no_surat'          => 'required|max:255|min:5|unique:documents,no_surat,' . $data->id,
+                'jenis_document'    => 'required',
+                'diajukan_oleh'     => 'required',
+                'disetujui_oleh'    => 'required',
+                'recipient'         => 'array',
+                'approval'          => 'array',
+                'isi_document'      => 'required|min:5',
             ]);
 
-            $data->approval()->sync([]);
-            $data->recipient()->sync([]);
+            DB::beginTransaction();
+            try {
+                $data->update([
+                    'no_surat'                  => $request->no_surat,
+                    'jenis_id'                  => $request->jenis_document,
+                    'pengirim_diajukan_oleh'    => $request->diajukan_oleh,
+                    'pengirim_disetujui_oleh'   => $request->disetujui_oleh,
+                    'body'                      => $request->isi_document
+                ]);
 
-            $data->approval()->sync(request('approval'));
-            $data->recipient()->sync(request('recipient'));
+                $data->approval()->sync([]);
+                $data->recipient()->sync([]);
 
-            DB::commit();
-            return redirect()->route('document.index')
-                ->with('success', 'Document has been updated');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+                $data->approval()->sync(request('approval'));
+                $data->recipient()->sync(request('recipient'));
+
+                DB::commit();
+                return redirect()->route('document.index')
+                    ->with('success', 'Document has been updated');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', "Error on line {$e->getLine()}: {$e->getMessage()}");
+            }
+        } else {
+            return View::make('error.403');
         }
     }
 
@@ -378,35 +403,44 @@ class DocumentController extends Controller
      */
     public function destroy($id)
     {
-        DB::beginTransaction();
-        try {
-            $id = Crypt::decryptString($id);
-            $data = Document::find($id);
+        $user = auth()->user();
 
-            if (!$data) {
+        if ($user->can('delete document')) {
+            DB::beginTransaction();
+            try {
+                $id = Crypt::decryptString($id);
+                $data = Document::find($id);
+
+                if (!$data) {
+                    return response()->json([
+                        'status'  => 404,
+                        'message' => "Data not found!",
+                    ], 404);
+                }
+
+                // Delete data document
+                $data->delete();
+
+                // Remove All data in many to many relation
+                $data->approval()->sync([]);
+                $data->recipient()->sync([]);
+
+                DB::commit();
+
                 return response()->json([
-                    'status'  => 404,
-                    'message' => "Data not found!",
-                ], 404);
+                    'status'  => 200,
+                    'message' => "Document has been deleted",
+                ], 200);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 500,
+                    'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                ], 500);
             }
-
-            // Delete data document
-            $data->delete();
-
-            // Remove All data in many to many relation
-            $data->approval()->sync([]);
-            $data->recipient()->sync([]);
-
-            DB::commit();
-
-            return response()->json([
-                'status'  => 200,
-                'message' => "Document has been deleted",
-            ], 200);
-        } catch (\Throwable $e) {
+        } else {
             return response()->json([
                 'status'  => 500,
-                'message' => "Error on line {$e->getLine()}: {$e->getMessage()}",
+                'message' => 'User dont have permission',
             ], 500);
         }
     }

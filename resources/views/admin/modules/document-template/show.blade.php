@@ -8,7 +8,7 @@
         width: auto; 
         height: auto; 
         /* position: absolute;  */
-        padding-top: 60px; 
+        padding-top: 100px; 
         padding-left: 30px; 
         padding-right: 30px; 
         padding-bottom: 30px;
@@ -44,11 +44,11 @@
             <tr>
                 <td align="center" style="font-size: 14px">No. _________________________</td>
             </tr>
-        </table><br>
+        </table>
 
         {!! $data->template !!}
 
-        <br><p style="font-size: 11pt">Bali, {{ \Carbon\Carbon::now()->format('d M Y') }}</p>
+        <p style="font-size: 11pt">Bali, {{ \Carbon\Carbon::now()->format('d M Y') }}</p>
         
         {{-- Tanda Tangan --}}
         <table class="custom-table" style="margin-left:auto;margin-right:auto;font-size: 10pt;border:none" cellspacing="0" cellpadding="7">

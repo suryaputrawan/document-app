@@ -382,8 +382,6 @@
                 dataType: "json",
                 success: function(response) {
 
-                    console.log(response);
-
                     if (response.status == 404) {
                         Toast.fire({
                             icon: 'warning',

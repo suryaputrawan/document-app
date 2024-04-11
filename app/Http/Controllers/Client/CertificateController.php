@@ -32,7 +32,7 @@ class CertificateController extends Controller
                 if (auth()->user()->username == "superadmin") {
                     $data = Certificate::latest()->get();
                 } else {
-                    $karyawan = auth()->user()->karyawan_id;
+                    $karyawan = auth()->user()->id;
                     $data = Certificate::where('user_created', $karyawan)
                         ->latest()
                         ->get();

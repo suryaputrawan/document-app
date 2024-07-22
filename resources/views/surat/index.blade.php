@@ -429,8 +429,6 @@
                     jenis_document: jenisDocument
                 },
                 success: function(response) {    
-                    
-                    console.log(response);
 
                     submitButton.prop('disabled',false);
                     submitButtonLoading.toggle();
